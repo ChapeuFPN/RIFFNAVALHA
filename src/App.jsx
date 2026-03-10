@@ -939,6 +939,7 @@ function BarberCortes({ cortes, setCortes }) {
 
 function BarberMusica({ musicas, setMusicas }) {
   const [novaMusica, setNovaMusica] = useState("");
+  const pedidos = ls.get("riff_pedidos_musica", []);
 
   const adicionar = () => {
     if (!novaMusica.trim()) return;
@@ -948,9 +949,27 @@ function BarberMusica({ musicas, setMusicas }) {
 
   const remover = (id) => setMusicas(prev => prev.filter(m => m.id !== id));
 
+  const limparPedidos = () => ls.set("riff_pedidos_musica", []);
+
   return (
     <div className="card">
       <div className="card-title">Estilos Musicais</div>
+
+      {pedidos.length > 0 && (
+        <div style={{ marginBottom: 20, background: "var(--cream)", border: "1px solid var(--gold)", padding: 16 }}>
+          <div style={{ fontFamily: "Playfair Display, serif", fontSize: 16, fontWeight: 700, marginBottom: 10, color: "var(--charcoal)" }}>
+            🎵 Pedidos dos Clientes
+          </div>
+          {pedidos.map((p, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--warm)", fontSize: 15 }}>
+              <span><strong>{p.clienteNome}</strong> pediu</span>
+              <span style={{ color: "var(--rust)", fontWeight: 700 }}>{p.musica}</span>
+            </div>
+          ))}
+          <button className="btn btn-outline btn-sm" style={{ marginTop: 10 }} onClick={limparPedidos}>Limpar pedidos</button>
+        </div>
+      )}
+
       <p className="text-muted" style={{ marginBottom: 16 }}>O cliente poderá escolher o estilo que deseja ouvir durante o corte.</p>
       {musicas.map(m => (
         <div className="musica-item" key={m.id}>
@@ -1163,8 +1182,8 @@ function ClienteDashboard({ user, onLogout }) {
       <div className="content">
         {tab === "agendar" && <ClienteAgendar cortes={cortes} user={user} agendamentos={agendamentos} setAgendamentos={setAgendamentos} />}
         {tab === "meus" && <ClienteMeusAgendamentos agendamentos={agendamentos} setAgendamentos={setAgendamentos} />}
-        {tab === "musica" && <ClienteMusica musicas={musicas} />}
-        {tab === "fotos" && <ClienteFotos fotosSemana={fotosSemana} setFotosSemana={setFotosSemana} />}
+        {tab === "musica" && <ClienteMusica musicas={musicas} user={user} />}
+        {tab === "fotos" && <ClienteFotos fotosSemana={fotosSemana} setFotosSemana={setFotosSemana} user={user} />}
         {tab === "barbearia" && <ClienteBarbearia info={infoBarbearia} />}
       </div>
     </div>
@@ -1172,6 +1191,12 @@ function ClienteDashboard({ user, onLogout }) {
 }
 
 const HORARIOS = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"];
+
+const addMinutes = (hora, mins) => {
+  const [h, m] = hora.split(":").map(Number);
+  const total = h * 60 + m + mins;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+};
 
 function ClienteAgendar({ cortes, user, agendamentos, setAgendamentos }) {
   const [corteId, setCorteId] = useState(null);
@@ -1182,8 +1207,35 @@ function ClienteAgendar({ cortes, user, agendamentos, setAgendamentos }) {
 
   const corte = cortes.find(c => c.id === corteId);
 
+  // Calcula horários bloqueados para a data e corte selecionados
+  const getHorariosBloqueados = () => {
+    const todosAgend = ls.get("riff_agendamentos", AGENDAMENTOS_INICIAIS);
+    const agendDia = todosAgend.filter(a => a.data === data && a.status !== "cancelado");
+    const bloqueados = new Set();
+    agendDia.forEach(a => {
+      bloqueados.add(a.hora);
+      // Bloqueia próximo horário se duração > 30 min
+      const corteDoAgend = cortes.find(c => c.id === a.corteId);
+      if (corteDoAgend && corteDoAgend.tempo > 30) {
+        bloqueados.add(addMinutes(a.hora, 30));
+      }
+    });
+    return bloqueados;
+  };
+
+  const horariosBloqueados = data ? getHorariosBloqueados() : new Set();
+
+  // Bloqueia também o próximo slot se o corte atual durar > 30 min
+  const getSlotsBloqueadosPeloCorteAtual = (h) => {
+    if (!corte || corte.tempo <= 30) return false;
+    const proxIdx = HORARIOS.indexOf(h) - 1;
+    if (proxIdx < 0) return false;
+    return horariosBloqueados.has(addMinutes(HORARIOS[proxIdx], 30));
+  };
+
   const agendar = () => {
     if (!corteId || !data || !hora) { setErro("Selecione o corte, data e horário."); return; }
+    if (horariosBloqueados.has(hora)) { setErro("Este horário já está ocupado."); return; }
     setErro("");
     const novo = {
       id: Date.now(),
@@ -1192,12 +1244,16 @@ function ClienteAgendar({ cortes, user, agendamentos, setAgendamentos }) {
       corteId,
       corteNome: corte.nome,
       valor: corte.valor,
+      tempo: corte.tempo,
       data,
       hora,
       status: "pendente",
     };
+    // Salva globalmente
+    const todos = ls.get("riff_agendamentos", AGENDAMENTOS_INICIAIS);
+    ls.set("riff_agendamentos", [...todos, novo]);
     setAgendamentos(prev => [...prev, novo]);
-    setSucesso(`✓ Agendamento de ${corte.nome} em ${data} às ${hora} realizado! Você receberá uma confirmação no celular.`);
+    setSucesso(`✓ Agendamento de ${corte.nome} em ${data} às ${hora} realizado!`);
     setCorteId(null); setData(""); setHora("");
     setTimeout(() => setSucesso(""), 5000);
   };
@@ -1226,7 +1282,7 @@ function ClienteAgendar({ cortes, user, agendamentos, setAgendamentos }) {
       <div className="grid-2">
         <div className="field">
           <label>Data</label>
-          <input type="date" value={data} onChange={e => setData(e.target.value)} min="2026-03-10" />
+          <input type="date" value={data} onChange={e => { setData(e.target.value); setHora(""); }} min="2026-03-10" />
         </div>
       </div>
 
@@ -1234,10 +1290,21 @@ function ClienteAgendar({ cortes, user, agendamentos, setAgendamentos }) {
         <div style={{ marginBottom: 20 }}>
           <label style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "var(--brown)", display: "block", marginBottom: 8 }}>Horário</label>
           <div className="horario-agend">
-            {HORARIOS.map(h => (
-              <div key={h} className={`horario-slot ${hora === h ? "selected" : ""}`} onClick={() => setHora(h)}>{h}</div>
-            ))}
+            {HORARIOS.map(h => {
+              const bloqueado = horariosBloqueados.has(h);
+              return (
+                <div
+                  key={h}
+                  className={`horario-slot ${hora === h ? "selected" : ""} ${bloqueado ? "bloqueado" : ""}`}
+                  onClick={() => !bloqueado && setHora(h)}
+                  style={bloqueado ? { background: "#e0d5c5", color: "#aaa", cursor: "not-allowed", textDecoration: "line-through" } : {}}
+                >
+                  {h}
+                </div>
+              );
+            })}
           </div>
+          <p className="text-muted" style={{ fontSize: 12, marginTop: 8 }}>Horários riscados estão ocupados</p>
         </div>
       )}
 
@@ -1271,12 +1338,18 @@ function ClienteMeusAgendamentos({ agendamentos, setAgendamentos }) {
   );
 }
 
-function ClienteMusica({ musicas }) {
-  const [escolhida, setEscolhida] = useState(null);
+function ClienteMusica({ musicas, user }) {
+  const [escolhida, setEscolhida] = useState(() => ls.get(`riff_musica_${user.id}`, null));
   const [enviado, setEnviado] = useState(false);
 
   const enviar = () => {
     if (!escolhida) return;
+    // Salva pedido de música vinculado ao cliente
+    const pedidos = ls.get("riff_pedidos_musica", []);
+    const novosPedidos = pedidos.filter(p => p.clienteId !== user.id);
+    novosPedidos.push({ clienteId: user.id, clienteNome: user.nome, musica: escolhida, hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) });
+    ls.set("riff_pedidos_musica", novosPedidos);
+    ls.set(`riff_musica_${user.id}`, escolhida);
     setEnviado(true);
     setTimeout(() => setEnviado(false), 3000);
   };
@@ -1300,17 +1373,15 @@ function ClienteMusica({ musicas }) {
   );
 }
 
-function ClienteFotos({ fotosSemana, setFotosSemana }) {
-  const [likedIds, setLikedIds] = useState([]);
+function ClienteFotos({ fotosSemana, setFotosSemana, user }) {
+  const [likedIds, setLikedIds] = useState(() => ls.get(`riff_likes_${user.id}`, []));
 
   const toggleLike = (id) => {
-    if (likedIds.includes(id)) {
-      setLikedIds(prev => prev.filter(l => l !== id));
-      setFotosSemana(prev => prev.map(f => f.id === id ? { ...f, likes: f.likes - 1 } : f));
-    } else {
-      setLikedIds(prev => [...prev, id]);
-      setFotosSemana(prev => prev.map(f => f.id === id ? { ...f, likes: f.likes + 1 } : f));
-    }
+    if (likedIds.includes(id)) return; // só pode curtir uma vez
+    const novosLikes = [...likedIds, id];
+    setLikedIds(novosLikes);
+    ls.set(`riff_likes_${user.id}`, novosLikes);
+    setFotosSemana(prev => prev.map(f => f.id === id ? { ...f, likes: f.likes + 1 } : f));
   };
 
   const diasRestantes = (dataStr) => {
@@ -1329,8 +1400,12 @@ function ClienteFotos({ fotosSemana, setFotosSemana }) {
             <div className="foto-info">
               <div className="foto-legenda">{f.legenda}</div>
               <div className="foto-meta">{diasRestantes(f.data)} dias restantes</div>
-              <button className={`like-btn ${likedIds.includes(f.id) ? "liked" : ""}`} onClick={() => toggleLike(f.id)}>
-                ❤ {f.likes} curtidas
+              <button
+                className={`like-btn ${likedIds.includes(f.id) ? "liked" : ""}`}
+                onClick={() => toggleLike(f.id)}
+                style={{ cursor: likedIds.includes(f.id) ? "default" : "pointer" }}
+              >
+                ❤ {f.likes} {likedIds.includes(f.id) ? "curtido!" : "curtidas"}
               </button>
             </div>
           </div>
