@@ -37,6 +37,19 @@ const saveUsuarioLogado = (usuario) => {
   } catch {}
 };
 
+// ─── localStorage helpers para todos os dados ─────────────────────────────────
+const ls = {
+  get: (key, fallback) => {
+    try {
+      const val = localStorage.getItem(key);
+      return val ? JSON.parse(val) : fallback;
+    } catch { return fallback; }
+  },
+  set: (key, val) => {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  },
+};
+
 const CORTES_INICIAIS = [
   { id: 1, nome: "Corte Clássico", valor: 35, tempo: 30, foto: null },
   { id: 2, nome: "Degradê", valor: 45, tempo: 40, foto: null },
@@ -746,11 +759,17 @@ function Cadastro({ onVoltar, onCadastrado }) {
 // ─── BARBEIRO ─────────────────────────────────────────────────────────────────
 function BarberDashboard({ user, onLogout }) {
   const [tab, setTab] = useState("agenda");
-  const [cortes, setCortes] = useState(CORTES_INICIAIS);
-  const [musicas, setMusicas] = useState(MUSICAS_INICIAIS);
-  const [agendamentos, setAgendamentos] = useState(AGENDAMENTOS_INICIAIS);
-  const [infoBarbearia, setInfoBarbearia] = useState(INFO_BARBEARIA_INICIAL);
-  const [fotosSemana, setFotosSemana] = useState(FOTOS_SEMANA_INICIAIS);
+  const [cortes, setCortes] = useState(() => ls.get("riff_cortes", CORTES_INICIAIS));
+  const [musicas, setMusicas] = useState(() => ls.get("riff_musicas", MUSICAS_INICIAIS));
+  const [agendamentos, setAgendamentos] = useState(() => ls.get("riff_agendamentos", AGENDAMENTOS_INICIAIS));
+  const [infoBarbearia, setInfoBarbearia] = useState(() => ls.get("riff_info", INFO_BARBEARIA_INICIAL));
+  const [fotosSemana, setFotosSemana] = useState(() => ls.get("riff_fotos", FOTOS_SEMANA_INICIAIS));
+
+  useEffect(() => { ls.set("riff_cortes", cortes); }, [cortes]);
+  useEffect(() => { ls.set("riff_musicas", musicas); }, [musicas]);
+  useEffect(() => { ls.set("riff_agendamentos", agendamentos); }, [agendamentos]);
+  useEffect(() => { ls.set("riff_info", infoBarbearia); }, [infoBarbearia]);
+  useEffect(() => { ls.set("riff_fotos", fotosSemana); }, [fotosSemana]);
 
   const tabs = [
     { id: "agenda", label: "Agenda" },
@@ -1100,11 +1119,22 @@ function BarberInfo({ info, setInfo }) {
 // ─── CLIENTE ──────────────────────────────────────────────────────────────────
 function ClienteDashboard({ user, onLogout }) {
   const [tab, setTab] = useState("agendar");
-  const [cortes] = useState(CORTES_INICIAIS);
-  const [musicas] = useState(MUSICAS_INICIAIS);
-  const [fotosSemana, setFotosSemana] = useState(FOTOS_SEMANA_INICIAIS);
-  const [agendamentos, setAgendamentos] = useState(AGENDAMENTOS_INICIAIS.filter(a => a.clienteId === user.id));
-  const [infoBarbearia] = useState(INFO_BARBEARIA_INICIAL);
+  const [cortes] = useState(() => ls.get("riff_cortes", CORTES_INICIAIS));
+  const [musicas] = useState(() => ls.get("riff_musicas", MUSICAS_INICIAIS));
+  const [fotosSemana, setFotosSemana] = useState(() => ls.get("riff_fotos", FOTOS_SEMANA_INICIAIS));
+  const [agendamentos, setAgendamentos] = useState(() =>
+    ls.get("riff_agendamentos", AGENDAMENTOS_INICIAIS).filter(a => a.clienteId === user.id)
+  );
+  const [infoBarbearia] = useState(() => ls.get("riff_info", INFO_BARBEARIA_INICIAL));
+
+  useEffect(() => {
+    // Sincroniza agendamentos do cliente com o storage global
+    const todos = ls.get("riff_agendamentos", AGENDAMENTOS_INICIAIS);
+    const outrosAgend = todos.filter(a => a.clienteId !== user.id);
+    ls.set("riff_agendamentos", [...outrosAgend, ...agendamentos]);
+  }, [agendamentos]);
+
+  useEffect(() => { ls.set("riff_fotos", fotosSemana); }, [fotosSemana]);
 
   const tabs = [
     { id: "agendar", label: "Agendar" },
