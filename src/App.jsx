@@ -340,8 +340,53 @@ const styles = `
   /* ── Grid ── */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  @media (max-width: 640px) {
+
+  @media (max-width: 768px) {
     .grid-2, .grid-3 { grid-template-columns: 1fr; }
+
+    .auth-card { padding: 32px 20px; }
+    .auth-logo h1 { font-size: 28px; }
+
+    .topbar { padding: 0 14px; }
+    .topbar-logo { font-size: 18px; }
+    .topbar-user { display: none; }
+
+    .nav-tabs { padding: 0 8px; }
+    .nav-tab { padding: 12px 10px; font-size: 11px; letter-spacing: 1px; }
+
+    .content { padding: 16px 12px; }
+
+    .card { padding: 16px; }
+    .card-title { font-size: 17px; flex-wrap: wrap; gap: 8px; }
+
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .stat-num { font-size: 24px; }
+
+    .agend-item { flex-direction: column; align-items: flex-start; }
+    .cobranca-item { flex-direction: column; align-items: flex-start; }
+
+    .horario-agend { grid-template-columns: repeat(3, 1fr); }
+
+    .modal { padding: 20px 16px; }
+    .modal-title { font-size: 18px; }
+
+    .btn { font-size: 13px; padding: 10px 18px; }
+    .btn-sm { padding: 6px 10px; font-size: 11px; }
+
+    .corte-card img { height: 80px; }
+
+    .foto-placeholder { height: 130px; }
+
+    .mapa-placeholder { height: 160px; font-size: 13px; }
+
+    .flex-gap { flex-wrap: wrap; }
+    .musica-select-item { font-size: 13px; padding: 8px 14px; }
+  }
+
+  @media (max-width: 400px) {
+    .horario-agend { grid-template-columns: repeat(2, 1fr); }
+    .stat-grid { grid-template-columns: 1fr; }
+    .nav-tab { padding: 10px 7px; font-size: 10px; }
   }
 
   /* ── Corte Card ── */
