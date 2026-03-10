@@ -8,10 +8,34 @@ const MOCK_BARBEIRO = {
   nome: "Carlos Riff",
 };
 
-const MOCK_CLIENTES = [
-  { id: 1, nome: "João Silva", email: "joao@email.com", senha: "123456", celular: "11999990001", role: "cliente" },
-  { id: 2, nome: "Pedro Alves", email: "pedro@email.com", senha: "123456", celular: "11999990002", role: "cliente" },
-];
+// ─── localStorage helpers ─────────────────────────────────────────────────────
+const getClientes = () => {
+  try {
+    const saved = localStorage.getItem("riff_clientes");
+    return saved ? JSON.parse(saved) : [
+      { id: 1, nome: "João Silva", email: "joao@email.com", senha: "123456", celular: "11999990001", role: "cliente" },
+      { id: 2, nome: "Pedro Alves", email: "pedro@email.com", senha: "123456", celular: "11999990002", role: "cliente" },
+    ];
+  } catch { return []; }
+};
+
+const saveClientes = (clientes) => {
+  try { localStorage.setItem("riff_clientes", JSON.stringify(clientes)); } catch {}
+};
+
+const getUsuarioLogado = () => {
+  try {
+    const saved = localStorage.getItem("riff_usuario");
+    return saved ? JSON.parse(saved) : null;
+  } catch { return null; }
+};
+
+const saveUsuarioLogado = (usuario) => {
+  try {
+    if (usuario) localStorage.setItem("riff_usuario", JSON.stringify(usuario));
+    else localStorage.removeItem("riff_usuario");
+  } catch {}
+};
 
 const CORTES_INICIAIS = [
   { id: 1, nome: "Corte Clássico", valor: 35, tempo: 30, foto: null },
@@ -637,7 +661,8 @@ function Login({ onLogin, onCadastro }) {
     if (email === MOCK_BARBEIRO.email && senha === MOCK_BARBEIRO.senha) {
       onLogin({ ...MOCK_BARBEIRO });
     } else {
-      const c = MOCK_CLIENTES.find(c => c.email === email && c.senha === senha);
+      const clientes = getClientes();
+      const c = clientes.find(c => c.email === email && c.senha === senha);
       if (c) onLogin({ ...c });
       else setErro("Email ou senha incorretos.");
     }
@@ -682,7 +707,12 @@ function Cadastro({ onVoltar, onCadastrado }) {
   const handleCadastro = () => {
     if (!form.nome || !form.email || !form.celular || !form.senha) { setErro("Preencha todos os campos."); return; }
     if (form.senha !== form.confirma) { setErro("As senhas não coincidem."); return; }
-    onCadastrado({ ...form, id: Date.now(), role: "cliente" });
+    const clientes = getClientes();
+    if (clientes.find(c => c.email === form.email)) { setErro("Este email já está cadastrado."); return; }
+    const novoCliente = { ...form, id: Date.now(), role: "cliente" };
+    const novosClientes = [...clientes, novoCliente];
+    saveClientes(novosClientes);
+    onCadastrado(novoCliente);
   };
 
   return (
@@ -1317,12 +1347,12 @@ function ClienteBarbearia({ info }) {
 
 // ─── App Principal ─────────────────────────────────────────────────────────────
 export default function App() {
-  const [tela, setTela] = useState("login"); // login | cadastro | app
-  const [usuario, setUsuario] = useState(null);
+  const [tela, setTela] = useState(() => getUsuarioLogado() ? "app" : "login");
+  const [usuario, setUsuario] = useState(() => getUsuarioLogado());
 
-  const handleLogin = (user) => { setUsuario(user); setTela("app"); };
-  const handleCadastrado = (user) => { setUsuario(user); setTela("app"); };
-  const handleLogout = () => { setUsuario(null); setTela("login"); };
+  const handleLogin = (user) => { saveUsuarioLogado(user); setUsuario(user); setTela("app"); };
+  const handleCadastrado = (user) => { saveUsuarioLogado(user); setUsuario(user); setTela("app"); };
+  const handleLogout = () => { saveUsuarioLogado(null); setUsuario(null); setTela("login"); };
 
   return (
     <>
