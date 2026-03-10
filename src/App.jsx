@@ -1,1495 +1,1294 @@
 import { useState, useEffect } from "react";
 
-// ── Fonts ──────────────────────────────────────────────────────────────────
-const fontLink = document.createElement("link");
-fontLink.rel = "stylesheet";
-fontLink.href = "https://fonts.googleapis.com/css2?family=Rye&family=Cabin+Condensed:wght@400;700&family=Special+Elite&display=swap";
-document.head.appendChild(fontLink);
+// ─── Mock Data ───────────────────────────────────────────────────────────────
+const MOCK_BARBEIRO = {
+  email: "barbeiro@riff.com",
+  senha: "riff123",
+  role: "barbeiro",
+  nome: "Carlos Riff",
+};
 
-// ── Global Styles ──────────────────────────────────────────────────────────
-const globalCSS = `
+const MOCK_CLIENTES = [
+  { id: 1, nome: "João Silva", email: "joao@email.com", senha: "123456", celular: "11999990001", role: "cliente" },
+  { id: 2, nome: "Pedro Alves", email: "pedro@email.com", senha: "123456", celular: "11999990002", role: "cliente" },
+];
+
+const CORTES_INICIAIS = [
+  { id: 1, nome: "Corte Clássico", valor: 35, tempo: 30, foto: null },
+  { id: 2, nome: "Degradê", valor: 45, tempo: 40, foto: null },
+  { id: 3, nome: "Navalhado", valor: 50, tempo: 45, foto: null },
+  { id: 4, nome: "Social", valor: 40, tempo: 35, foto: null },
+];
+
+const MUSICAS_INICIAIS = [
+  { id: 1, nome: "Rock" },
+  { id: 2, nome: "Hip Hop" },
+  { id: 3, nome: "Sertanejo" },
+  { id: 4, nome: "MPB" },
+  { id: 5, nome: "Eletrônico" },
+];
+
+const AGENDAMENTOS_INICIAIS = [
+  {
+    id: 1,
+    clienteId: 1,
+    clienteNome: "João Silva",
+    corteId: 1,
+    corteNome: "Corte Clássico",
+    valor: 35,
+    data: "2026-03-12",
+    hora: "10:00",
+    status: "confirmado",
+  },
+  {
+    id: 2,
+    clienteId: 2,
+    clienteNome: "Pedro Alves",
+    corteId: 2,
+    corteNome: "Degradê",
+    valor: 45,
+    data: "2026-03-12",
+    hora: "11:00",
+    status: "pendente",
+  },
+];
+
+const INFO_BARBEARIA_INICIAL = {
+  nome: "RIFF NAVALHA",
+  endereco: "Rua das Tesouras, 42 - Centro",
+  cidade: "São Paulo - SP",
+  telefone: "(11) 99999-0000",
+  horario: "Seg-Sáb: 9h às 20h",
+  descricao: "A barbearia que corta com alma. Tradição e estilo em cada navalha.",
+  lat: -23.5505,
+  lng: -46.6333,
+};
+
+const FOTOS_SEMANA_INICIAIS = [
+  { id: 1, legenda: "Degradê perfeito!", data: new Date().toISOString(), likes: 12 },
+  { id: 2, legenda: "Corte navalhado clássico", data: new Date(Date.now() - 2 * 86400000).toISOString(), likes: 8 },
+];
+
+// ─── Estilos base ─────────────────────────────────────────────────────────────
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
   :root {
-    --wood-dark:   #2b1a0e;
-    --wood-mid:    #3d2510;
-    --wood-light:  #5c3a1e;
-    --leather:     #7a4a2a;
-    --rust:        #a0522d;
-    --amber:       #d4882a;
-    --tan:         #c9a46e;
-    --cream:       #f2e8d5;
-    --parchment:   #ede0c4;
-    --iron:        #4a4035;
-    --smoke:       #8b7355;
-    --red-barn:    #8b2020;
-    --green-sage:  #4a5c40;
-    --off-white:   #f5f0e8;
+    --cream: #f5f0e8;
+    --warm: #e8dcc8;
+    --brown: #8b6f47;
+    --dark-brown: #4a3728;
+    --charcoal: #2c2416;
+    --rust: #c4622d;
+    --gold: #c9a84c;
+    --text: #2c2416;
+    --white: #fefcf8;
   }
 
   body {
-    background-color: var(--wood-dark);
-    background-image:
-      repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent 60px,
-        rgba(0,0,0,0.08) 60px,
-        rgba(0,0,0,0.08) 62px
-      ),
-      repeating-linear-gradient(
-        180deg,
-        transparent,
-        transparent 8px,
-        rgba(255,255,255,0.015) 8px,
-        rgba(255,255,255,0.015) 9px
-      );
-    color: var(--cream);
-    font-family: 'Special Elite', cursive;
+    font-family: 'Crimson Text', serif;
+    background: var(--cream);
+    color: var(--text);
     min-height: 100vh;
   }
 
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: var(--wood-dark); }
-  ::-webkit-scrollbar-thumb { background: var(--leather); border-radius: 3px; }
+  .app { min-height: 100vh; }
 
-  input, select, textarea {
-    background: rgba(43,26,14,0.8);
-    border: 2px solid var(--leather);
-    color: var(--cream);
-    padding: 10px 14px;
-    border-radius: 4px;
-    font-family: 'Special Elite', cursive;
-    font-size: 14px;
-    width: 100%;
-    outline: none;
-    transition: border 0.2s, box-shadow 0.2s;
+  /* ── Auth ── */
+  .auth-bg {
+    min-height: 100vh;
+    background: var(--charcoal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
   }
-  input:focus, select:focus, textarea:focus {
-    border-color: var(--amber);
-    box-shadow: 0 0 0 2px rgba(212,136,42,0.2);
-  }
-  input::placeholder, textarea::placeholder { color: var(--smoke); }
-  select option { background: var(--wood-dark); }
-
-  button { cursor: pointer; font-family: 'Cabin Condensed', sans-serif; transition: all 0.2s; }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes flicker {
-    0%,100% { opacity: 1; } 50% { opacity: .85; }
-  }
-  .fade-up { animation: fadeUp 0.5s ease forwards; }
-
-  .nail {
-    width: 14px; height: 14px;
-    background: radial-gradient(circle at 35% 35%, #888, #333);
-    border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0,0,0,.6), inset 0 1px 1px rgba(255,255,255,.15);
-    flex-shrink: 0;
-  }
-
-  .wanted-border {
-    border: 3px solid var(--tan);
-    box-shadow:
-      inset 0 0 0 2px var(--wood-dark),
-      inset 0 0 0 4px var(--leather),
-      0 4px 20px rgba(0,0,0,.5);
-    border-radius: 6px;
-  }
-
-  .wood-plank {
-    background:
-      repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent 55px,
-        rgba(0,0,0,0.06) 55px,
-        rgba(0,0,0,0.06) 57px
-      );
-    background-color: var(--wood-mid);
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-family: 'Cabin Condensed', sans-serif;
-  }
-  .badge-green  { background: #1e3018; color: #7dbb6a; border: 1px solid #3a5c30; }
-  .badge-red    { background: #301818; color: #c97a7a; border: 1px solid #5c3030; }
-  .badge-amber  { background: #302010; color: var(--amber); border: 1px solid #5c4020; }
-  .badge-blue   { background: #182030; color: #7aaac9; border: 1px solid #305060; }
-
-  .star-divider::before, .star-divider::after {
-    content: '— ★ ★ ★ —';
-    color: var(--amber);
-    font-family: 'Rye', cursive;
-    font-size: 13px;
-    letter-spacing: 4px;
-  }
-
-  /* Worn texture overlay on cards */
-  .card-worn::after {
+  .auth-bg::before {
     content: '';
     position: absolute;
     inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    border-radius: inherit;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 40px,
+      rgba(201,168,76,0.04) 40px,
+      rgba(201,168,76,0.04) 41px
+    );
+  }
+  .auth-card {
+    background: var(--white);
+    border: 2px solid var(--gold);
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+  }
+  .auth-card::before {
+    content: '';
+    position: absolute;
+    top: 6px; left: 6px; right: -6px; bottom: -6px;
+    border: 1px solid var(--brown);
     pointer-events: none;
   }
+  .auth-logo {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .auth-logo h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--charcoal);
+    letter-spacing: 4px;
+  }
+  .auth-logo span {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 6px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0 28px;
+    color: var(--brown);
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+  .auth-divider::before, .auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--warm);
+  }
+
+  /* ── Forms ── */
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--brown);
+    margin-bottom: 6px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--warm);
+    background: var(--cream);
+    font-family: 'Crimson Text', serif;
+    font-size: 16px;
+    color: var(--charcoal);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--gold);
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    font-family: 'Crimson Text', serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-weight: 600;
+  }
+  .btn-primary {
+    background: var(--charcoal);
+    color: var(--gold);
+    width: 100%;
+  }
+  .btn-primary:hover { background: var(--dark-brown); }
+  .btn-gold {
+    background: var(--gold);
+    color: var(--charcoal);
+  }
+  .btn-gold:hover { background: #b8973d; }
+  .btn-outline {
+    background: transparent;
+    color: var(--charcoal);
+    border: 1px solid var(--charcoal);
+  }
+  .btn-outline:hover { background: var(--warm); }
+  .btn-danger {
+    background: #c0392b;
+    color: white;
+  }
+  .btn-sm { padding: 7px 14px; font-size: 12px; }
+
+  .link-btn {
+    background: none;
+    border: none;
+    color: var(--gold);
+    cursor: pointer;
+    font-family: 'Crimson Text', serif;
+    font-size: 15px;
+    text-decoration: underline;
+  }
+
+  /* ── Layout ── */
+  .topbar {
+    background: var(--charcoal);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 2px solid var(--gold);
+  }
+  .topbar-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: 3px;
+  }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .topbar-user {
+    color: var(--warm);
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+  .topbar-logout {
+    background: none;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    padding: 6px 14px;
+    cursor: pointer;
+    font-size: 12px;
+    letter-spacing: 1px;
+    font-family: 'Crimson Text', serif;
+    transition: all 0.2s;
+  }
+  .topbar-logout:hover { background: var(--gold); color: var(--charcoal); }
+
+  .nav-tabs {
+    background: var(--white);
+    border-bottom: 1px solid var(--warm);
+    display: flex;
+    overflow-x: auto;
+    padding: 0 16px;
+  }
+  .nav-tab {
+    padding: 14px 20px;
+    cursor: pointer;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--brown);
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    font-family: 'Crimson Text', serif;
+    transition: all 0.2s;
+  }
+  .nav-tab.active {
+    color: var(--charcoal);
+    border-bottom-color: var(--gold);
+  }
+  .nav-tab:hover { color: var(--charcoal); }
+
+  .content { padding: 28px 24px; max-width: 960px; margin: 0 auto; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--warm);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--charcoal);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--warm);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ── Grid ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 640px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  /* ── Corte Card ── */
+  .corte-card {
+    background: var(--cream);
+    border: 1px solid var(--warm);
+    padding: 16px;
+    position: relative;
+  }
+  .corte-card img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border: 1px solid var(--warm);
+  }
+  .corte-card-nome {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .corte-card-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--brown);
+    margin-bottom: 10px;
+  }
+  .corte-valor { color: var(--rust); font-weight: 600; font-size: 16px; }
+
+  /* ── Agendamento ── */
+  .agend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--cream);
+    border: 1px solid var(--warm);
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .agend-info { flex: 1; min-width: 200px; }
+  .agend-nome { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; }
+  .agend-detalhe { font-size: 14px; color: var(--brown); margin-top: 2px; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .badge-confirmado { background: #d4edda; color: #155724; }
+  .badge-pendente { background: #fff3cd; color: #856404; }
+  .badge-concluido { background: #cce5ff; color: #004085; }
+  .badge-cancelado { background: #f8d7da; color: #721c24; }
+
+  /* ── Música ── */
+  .musica-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--cream);
+    border: 1px solid var(--warm);
+    margin-bottom: 8px;
+  }
+  .musica-nome { font-size: 16px; font-weight: 600; }
+
+  /* ── Fotos Semana ── */
+  .foto-card {
+    background: var(--cream);
+    border: 1px solid var(--warm);
+    overflow: hidden;
+  }
+  .foto-placeholder {
+    width: 100%;
+    height: 160px;
+    background: linear-gradient(135deg, var(--warm), var(--brown));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+  }
+  .foto-info { padding: 12px; }
+  .foto-legenda { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .foto-meta { font-size: 12px; color: var(--brown); margin-bottom: 10px; }
+  .foto-actions { display: flex; align-items: center; gap: 10px; }
+  .like-btn {
+    background: none;
+    border: 1px solid var(--warm);
+    padding: 5px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+    font-family: 'Crimson Text', serif;
+  }
+  .like-btn:hover, .like-btn.liked { background: var(--rust); color: white; border-color: var(--rust); }
+
+  /* ── Mapa ── */
+  .mapa-placeholder {
+    width: 100%;
+    height: 220px;
+    background: linear-gradient(135deg, #e8e0d0, #c8b898);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--warm);
+    font-size: 15px;
+    color: var(--dark-brown);
+    gap: 8px;
+  }
+
+  /* ── Cobranças ── */
+  .cobranca-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--cream);
+    border: 1px solid var(--warm);
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cobranca-valor { font-size: 20px; font-weight: 700; color: var(--rust); font-family: 'Playfair Display', serif; }
+
+  /* ── Stats ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 640px) { .stat-grid { grid-template-columns: 1fr 1fr; } }
+  .stat-card {
+    background: var(--charcoal);
+    color: var(--white);
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-num { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 900; color: var(--gold); }
+  .stat-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--warm); margin-top: 4px; }
+
+  /* ── Misc ── */
+  .section-sep { height: 1px; background: var(--warm); margin: 20px 0; }
+  .text-muted { color: var(--brown); font-size: 14px; }
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+  .gap-8 { gap: 8px; display: flex; }
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200; padding: 20px;
+  }
+  .modal {
+    background: var(--white);
+    border: 2px solid var(--gold);
+    padding: 32px;
+    width: 100%; max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--charcoal);
+  }
+  .flex-between { display: flex; align-items: center; justify-content: space-between; }
+  .flex-gap { display: flex; gap: 10px; flex-wrap: wrap; }
+  .musica-select-item {
+    padding: 10px 18px;
+    border: 2px solid var(--warm);
+    cursor: pointer;
+    font-family: 'Crimson Text', serif;
+    font-size: 15px;
+    transition: all 0.2s;
+    background: var(--cream);
+  }
+  .musica-select-item.selected { border-color: var(--gold); background: var(--gold); color: var(--charcoal); font-weight: 700; }
+  .musica-select-item:hover { border-color: var(--gold); }
+  .alert { padding: 12px 16px; font-size: 14px; margin-bottom: 16px; }
+  .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+  .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+  .horario-agend {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .horario-slot {
+    padding: 8px;
+    text-align: center;
+    border: 1px solid var(--warm);
+    cursor: pointer;
+    font-size: 14px;
+    background: var(--cream);
+    transition: all 0.2s;
+  }
+  .horario-slot:hover, .horario-slot.selected { background: var(--gold); border-color: var(--gold); font-weight: 700; }
+  .cliente-select-corte {
+    border: 2px solid var(--warm);
+    padding: 14px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    background: var(--cream);
+    transition: all 0.2s;
+  }
+  .cliente-select-corte:hover, .cliente-select-corte.selected { border-color: var(--gold); background: var(--white); }
 `;
-const styleEl = document.createElement("style");
-styleEl.textContent = globalCSS;
-document.head.appendChild(styleEl);
 
-// ── DATA ───────────────────────────────────────────────────────────────────
-const SERVICES = [
-  { id:1, name:"Classic Cut",       duration:30, price:35, icon:"✂️" },
-  { id:2, name:"Cut & Beard",       duration:60, price:65, icon:"🪒" },
-  { id:3, name:"Beard Trim",        duration:30, price:35, icon:"🧔" },
-  { id:4, name:"Brow Shape",        duration:15, price:20, icon:"🙆" },
-  { id:5, name:"Kid's Cut",         duration:25, price:28, icon:"👦" },
-  { id:6, name:"Color & Bleach",    duration:90, price:120, icon:"💈" },
-];
-
-const MUSIC_GENRES = [
-  { id:1, name:"Country & Western", icon:"🤠" },
-  { id:2, name:"Outlaw Country",    icon:"🎸" },
-  { id:3, name:"Bluegrass",         icon:"🪕" },
-  { id:4, name:"Classic Rock",      icon:"🎵" },
-  { id:5, name:"Blues",             icon:"🎷" },
-  { id:6, name:"Old Sertanejo",     icon:"🎶" },
-  { id:7, name:"Gospel / Soul",     icon:"🙏" },
-  { id:8, name:"Easy Listening",    icon:"☁️" },
-];
-
-const INITIAL_APPOINTMENTS = [
-  { id:1, client:"Lucas Mendes",  phone:"11987654321", service:"Cut & Beard",  date:"2025-06-12", time:"09:00", status:"confirmado", payment:"pix",    music:"Country & Western", price:65 },
-  { id:2, client:"Rafael Costa",  phone:"11912345678", service:"Classic Cut",  date:"2025-06-12", time:"10:00", status:"aguardando", payment:"cartão", music:"Classic Rock",       price:35 },
-  { id:3, client:"Diego Alves",   phone:"11955551234", service:"Beard Trim",   date:"2025-06-12", time:"11:00", status:"confirmado", payment:"dinheiro",music:"Blues",             price:35 },
-  { id:4, client:"Marcos Lima",   phone:"11944449999", service:"Brow Shape",   date:"2025-06-13", time:"14:00", status:"cancelado", payment:"pix",     music:"Easy Listening",    price:20 },
-];
-
-const INITIAL_CLIENTS = [
-  { id:1, name:"Lucas Mendes", phone:"11987654321", visits:8,  lastVisit:"2025-05-30", favoriteService:"Cut & Beard" },
-  { id:2, name:"Rafael Costa", phone:"11912345678", visits:3,  lastVisit:"2025-05-20", favoriteService:"Classic Cut" },
-  { id:3, name:"Diego Alves",  phone:"11955551234", visits:12, lastVisit:"2025-06-01", favoriteService:"Beard Trim" },
-];
-
-// ── HELPERS ────────────────────────────────────────────────────────────────
-function Btn({ children, onClick, variant="primary", style={}, disabled=false }) {
-  const base = {
-    padding:"10px 22px", borderRadius:4, fontWeight:700, fontSize:14,
-    letterSpacing:"1px", textTransform:"uppercase", border:"none",
-    display:"inline-flex", alignItems:"center", gap:6,
-    opacity: disabled ? 0.5 : 1,
-  };
-  const variants = {
-    primary: {
-      background:"linear-gradient(180deg, #d4882a 0%, #a05c18 100%)",
-      color:"#fff",
-      boxShadow:"0 3px 0 #5c3010, 0 4px 12px rgba(0,0,0,.4)",
-      border:"1px solid #7a4a1a",
-    },
-    ghost: {
-      background:"transparent",
-      color: "var(--tan)",
-      border:"2px solid var(--leather)",
-      boxShadow:"none",
-    },
-    danger: {
-      background:"transparent",
-      color:"#c97a7a",
-      border:"2px solid #8b2020",
-    },
-    dark: {
-      background:"rgba(43,26,14,.9)",
-      color:"var(--cream)",
-      border:"2px solid var(--leather)",
-    },
-    green: {
-      background:"transparent",
-      color:"#7dbb6a",
-      border:"2px solid #3a5c30",
-    },
-  };
-  return (
-    <button onClick={onClick} disabled={disabled} style={{ ...base, ...variants[variant], ...style }}>
-      {children}
-    </button>
-  );
+// ─── Componentes Utilitários ───────────────────────────────────────────────────
+function StyleSheet() {
+  return <style dangerouslySetInnerHTML={{ __html: styles }} />;
 }
 
-function Card({ children, style={}, className="" }) {
-  return (
-    <div className={`card-worn ${className}`} style={{
-      background:"linear-gradient(160deg, #3d2a18 0%, #2b1a0e 100%)",
-      border:"2px solid var(--leather)",
-      borderRadius:6,
-      padding:20,
-      position:"relative",
-      boxShadow:"0 4px 20px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04)",
-      ...style,
-    }}>
-      {children}
-    </div>
-  );
+function Alert({ type = "success", msg }) {
+  if (!msg) return null;
+  return <div className={`alert alert-${type}`}>{msg}</div>;
 }
 
 function Modal({ title, onClose, children }) {
   return (
-    <div style={{
-      position:"fixed", inset:0, background:"rgba(10,6,2,.88)", zIndex:1000,
-      display:"flex", alignItems:"center", justifyContent:"center", padding:20,
-    }}>
-      <div className="fade-up wanted-border" style={{
-        background:"linear-gradient(160deg, #3d2a18 0%, #2b1a0e 100%)",
-        width:"100%", maxWidth:520, maxHeight:"90vh", overflowY:"auto",
-        position:"relative",
-      }}>
-        {/* Nail corners */}
-        {["top:8px;left:8px","top:8px;right:8px","bottom:8px;left:8px","bottom:8px;right:8px"].map((pos,i) => (
-          <div key={i} className="nail" style={{ position:"absolute", ...Object.fromEntries(pos.split(";").map(p => p.split(":"))) }} />
-        ))}
-        <div style={{
-          display:"flex", justifyContent:"space-between", alignItems:"center",
-          padding:"18px 28px", borderBottom:"2px solid var(--leather)",
-        }}>
-          <span style={{ fontFamily:"'Rye',cursive", fontSize:20, color:"var(--amber)", letterSpacing:2 }}>{title}</span>
-          <button onClick={onClose} style={{ background:"none", border:"none", color:"var(--smoke)", fontSize:26, lineHeight:1 }}>×</button>
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="flex-between" style={{ marginBottom: 20 }}>
+          <div className="modal-title">{title}</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "var(--brown)" }}>✕</button>
         </div>
-        <div style={{ padding:"20px 28px" }}>{children}</div>
+        {children}
       </div>
     </div>
   );
 }
 
-function Field({ label, children }) {
-  return (
-    <div style={{ marginBottom:14 }}>
-      <label style={{ display:"block", fontSize:12, color:"var(--tan)", marginBottom:5, textTransform:"uppercase", letterSpacing:1.5, fontFamily:"'Cabin Condensed',sans-serif", fontWeight:700 }}>{label}</label>
-      {children}
-    </div>
-  );
-}
+// ─── Telas de Autenticação ────────────────────────────────────────────────────
+function Login({ onLogin, onCadastro }) {
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState("");
 
-function SectionTitle({ children }) {
-  return (
-    <div style={{ marginBottom:24 }}>
-      <h2 style={{ fontFamily:"'Rye',cursive", fontSize:30, color:"var(--amber)", letterSpacing:3, textShadow:"2px 2px 0 rgba(0,0,0,.5)" }}>{children}</h2>
-      <div style={{ height:2, background:"linear-gradient(90deg, var(--amber), var(--leather), transparent)", marginTop:6, maxWidth:320 }} />
-    </div>
-  );
-}
-
-function RopeDivider() {
-  return (
-    <div style={{ textAlign:"center", padding:"8px 0", color:"var(--tan)", fontSize:12, letterSpacing:6, fontFamily:"'Rye',cursive" }}>
-      ~ ~ ~ ~ ~
-    </div>
-  );
-}
-
-// ── BARBER LOGIN SCREEN ────────────────────────────────────────────────────
-// Default credentials (owner can change inside Settings)
-const DEFAULT_BARBER = { email: "barbeiro@redbarn.com", password: "redbarn2024" };
-
-function BarberLogin({ onLogin }) {
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError]       = useState("");
-  const [showPass, setShowPass] = useState(false);
-  const [shaking, setShaking]   = useState(false);
-
-  const saved = (() => {
-    try { return JSON.parse(localStorage.getItem("rb_barber") || "null") || DEFAULT_BARBER; } catch { return DEFAULT_BARBER; }
-  })();
-
-  const attempt = () => {
-    if (email.trim().toLowerCase() === saved.email.toLowerCase() && password === saved.password) {
-      onLogin();
+  const handleLogin = () => {
+    setErro("");
+    if (email === MOCK_BARBEIRO.email && senha === MOCK_BARBEIRO.senha) {
+      onLogin({ ...MOCK_BARBEIRO });
     } else {
-      setError("Wrong credentials, partner. Try again. 🤠");
-      setShaking(true);
-      setTimeout(() => setShaking(false), 500);
+      const c = MOCK_CLIENTES.find(c => c.email === email && c.senha === senha);
+      if (c) onLogin({ ...c });
+      else setErro("Email ou senha incorretos.");
     }
   };
 
   return (
-    <div style={{
-      minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",
-      padding:24,
-      background:"linear-gradient(160deg,#1a0e06 0%,#2b1a0e 60%,#1a0e06 100%)",
-    }}>
-      <div
-        className="fade-up"
-        style={{
-          width:"100%", maxWidth:420,
-          animation: shaking ? "shake 0.4s ease" : undefined,
-        }}
-      >
-        <style>{`
-          @keyframes shake {
-            0%,100%{transform:translateX(0)}
-            20%{transform:translateX(-10px)}
-            40%{transform:translateX(10px)}
-            60%{transform:translateX(-8px)}
-            80%{transform:translateX(8px)}
-          }
-        `}</style>
-
-        {/* Wanted poster style login card */}
-        <div className="wanted-border" style={{
-          background:"linear-gradient(160deg,#3d2a18,#2b1a0e)",
-          padding:"36px 32px",
-          position:"relative",
-          textAlign:"center",
-        }}>
-          {/* Nail corners */}
-          {["top:8px;left:8px","top:8px;right:8px","bottom:8px;left:8px","bottom:8px;right:8px"].map((pos,i)=>(
-            <div key={i} className="nail" style={{ position:"absolute",...Object.fromEntries(pos.split(";").map(p=>p.split(":"))) }} />
-          ))}
-
-          {/* Badge star */}
-          <div style={{
-            width:72, height:72, borderRadius:"50%",
-            background:"linear-gradient(135deg,var(--amber),#7a4a10)",
-            border:"3px solid var(--tan)",
-            display:"flex", alignItems:"center", justifyContent:"center",
-            fontSize:32, margin:"0 auto 20px",
-            boxShadow:"0 0 24px rgba(212,136,42,.4), inset 0 2px 4px rgba(255,255,255,.1)",
-          }}>🔒</div>
-
-          <div style={{ fontFamily:"'Rye',cursive", fontSize:26, color:"var(--amber)", letterSpacing:3, textShadow:"2px 2px 0 rgba(0,0,0,.5)", marginBottom:4 }}>
-            STAFF ONLY
-          </div>
-          <div style={{ fontFamily:"'Special Elite',cursive", color:"var(--smoke)", fontSize:13, marginBottom:28 }}>
-            Authorized personnel only beyond this point
-          </div>
-
-          <div style={{ textAlign:"left" }}>
-            <Field label="E-mail">
-              <input
-                type="email"
-                value={email}
-                onChange={e=>{ setEmail(e.target.value); setError(""); }}
-                placeholder="barbeiro@redbarn.com"
-                onKeyDown={e=>e.key==="Enter"&&attempt()}
-              />
-            </Field>
-            <Field label="Password">
-              <div style={{ position:"relative" }}>
-                <input
-                  type={showPass?"text":"password"}
-                  value={password}
-                  onChange={e=>{ setPassword(e.target.value); setError(""); }}
-                  placeholder="••••••••"
-                  onKeyDown={e=>e.key==="Enter"&&attempt()}
-                  style={{ paddingRight:44 }}
-                />
-                <button
-                  onClick={()=>setShowPass(!showPass)}
-                  style={{ position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"var(--smoke)",fontSize:16 }}
-                >{showPass?"🙈":"👁️"}</button>
-              </div>
-            </Field>
-          </div>
-
-          {error && (
-            <div style={{
-              background:"rgba(139,32,32,.2)", border:"1px solid var(--red-barn)",
-              borderRadius:4, padding:"10px 14px", marginBottom:16,
-              color:"#c97a7a", fontSize:13, fontFamily:"'Special Elite',cursive",
-            }}>{error}</div>
-          )}
-
-          <Btn
-            onClick={attempt}
-            disabled={!email||!password}
-            style={{ width:"100%", padding:"14px", fontSize:15, justifyContent:"center" }}
-          >
-            🤠 Enter the Ranch
-          </Btn>
-
-          <div style={{ marginTop:20, padding:"12px", background:"rgba(212,136,42,.07)", borderRadius:4, border:"1px solid rgba(212,136,42,.15)" }}>
-            <div style={{ fontSize:11, color:"var(--smoke)", fontFamily:"'Cabin Condensed',sans-serif", letterSpacing:1 }}>
-              DEFAULT CREDENTIALS (change in Settings after login)
-            </div>
-            <div style={{ fontSize:12, color:"var(--tan)", marginTop:4, fontFamily:"'Special Elite',cursive" }}>
-              📧 barbeiro@redbarn.com<br/>🔑 redbarn2024
-            </div>
-          </div>
+    <div className="auth-bg">
+      <div className="auth-card">
+        <div className="auth-logo">
+          <h1>RIFF</h1>
+          <span>✦ navalha ✦</span>
+        </div>
+        <Alert type="error" msg={erro} />
+        <div className="field">
+          <label>E-mail</label>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" />
+        </div>
+        <div className="field">
+          <label>Senha</label>
+          <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="••••••" onKeyDown={e => e.key === "Enter" && handleLogin()} />
+        </div>
+        <button className="btn btn-primary" onClick={handleLogin}>Entrar</button>
+        <div className="auth-divider">ou</div>
+        <div style={{ textAlign: "center" }}>
+          <span style={{ fontSize: 15, color: "var(--brown)" }}>Não tem conta? </span>
+          <button className="link-btn" onClick={onCadastro}>Cadastre-se</button>
+        </div>
+        <div style={{ marginTop: 20, padding: 14, background: "var(--cream)", fontSize: 13, color: "var(--brown)" }}>
+          <strong>Demo:</strong><br />
+          Barbeiro: barbeiro@riff.com / riff123<br />
+          Cliente: joao@email.com / 123456
         </div>
       </div>
     </div>
   );
 }
 
-// ── HEADER ─────────────────────────────────────────────────────────────────
-function Header({ view, setView, isBarber, onLogout, onGoLogin }) {
-  const clientViews = ["home","agendar","meus horários"];
-  const barberViews = ["dashboard","agenda","clientes","serviços","configurações"];
-  const navViews    = isBarber ? barberViews : clientViews;
+function Cadastro({ onVoltar, onCadastrado }) {
+  const [form, setForm] = useState({ nome: "", email: "", celular: "", senha: "", confirma: "" });
+  const [erro, setErro] = useState("");
 
-  return (
-    <header style={{ background:"var(--wood-dark)", borderBottom:"3px solid var(--leather)", position:"sticky", top:0, zIndex:100 }}>
-      <div style={{ height:4, background:"repeating-linear-gradient(90deg, var(--amber) 0, var(--amber) 12px, var(--red-barn) 12px, var(--red-barn) 24px)" }} />
-
-      <div style={{ maxWidth:1200, margin:"0 auto", padding:"0 24px", display:"flex", alignItems:"center", justifyContent:"space-between", height:70, gap:12, flexWrap:"wrap" }}>
-
-        {/* Logo */}
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <div style={{ fontSize:32, filter:"drop-shadow(2px 2px 4px rgba(0,0,0,.6))" }}>🤠</div>
-          <div>
-            <div style={{ fontFamily:"'Rye',cursive", fontSize:22, color:"var(--amber)", letterSpacing:3, lineHeight:1, textShadow:"2px 2px 0 rgba(0,0,0,.5)" }}>RED BARN</div>
-            <div style={{ fontFamily:"'Rye',cursive", fontSize:12, color:"var(--tan)", letterSpacing:4, marginTop:1 }}>BARBER SHOP</div>
-          </div>
-        </div>
-
-        {/* Nav */}
-        <nav style={{ display:"flex", gap:2, flexWrap:"wrap" }}>
-          {navViews.map(v => (
-            <button key={v} onClick={() => setView(v)} style={{
-              background: view===v ? "rgba(212,136,42,.18)" : "transparent",
-              color: view===v ? "var(--amber)" : "var(--smoke)",
-              border: view===v ? "1px solid var(--leather)" : "1px solid transparent",
-              padding:"6px 14px", borderRadius:4, fontSize:13, fontWeight:700,
-              textTransform:"capitalize", letterSpacing:.5,
-              fontFamily:"'Cabin Condensed',sans-serif",
-            }}>{v.charAt(0).toUpperCase()+v.slice(1)}</button>
-          ))}
-        </nav>
-
-        {/* Auth button */}
-        {isBarber
-          ? <Btn variant="danger" onClick={onLogout} style={{ fontSize:12 }}>🚪 Sair</Btn>
-          : <Btn variant="dark"   onClick={onGoLogin} style={{ fontSize:12 }}>🔑 Barbeiro</Btn>
-        }
-      </div>
-    </header>
-  );
-}
-
-// ── CLIENT HOME ────────────────────────────────────────────────────────────
-function ClientHome({ setView, photos = [] }) {
-  return (
-    <div className="fade-up">
-
-      {/* HERO */}
-      <div style={{
-        position:"relative", overflow:"hidden",
-        background:"linear-gradient(180deg, #1a0e06 0%, #2b1a0e 60%, #1a0e06 100%)",
-        borderBottom:"4px solid var(--leather)",
-        padding:"70px 24px 60px",
-        textAlign:"center",
-      }}>
-        {/* Diagonal wood grain bg */}
-        <div style={{
-          position:"absolute", inset:0, opacity:.07,
-          backgroundImage:"repeating-linear-gradient(35deg, transparent, transparent 40px, rgba(212,136,42,1) 40px, rgba(212,136,42,1) 42px)",
-        }} />
-        {/* Star badge */}
-        <div style={{
-          display:"inline-block",
-          border:"2px solid var(--amber)", borderRadius:"50%",
-          width:64, height:64, lineHeight:"60px", fontSize:30,
-          marginBottom:20, background:"rgba(212,136,42,.1)",
-          boxShadow:"0 0 30px rgba(212,136,42,.3)",
-        }}>⭐</div>
-        <div style={{ fontFamily:"'Cabin Condensed',sans-serif", fontWeight:700, color:"var(--tan)", letterSpacing:6, fontSize:13, marginBottom:8 }}>
-          — EST. 2010 · SÃO PAULO, BRAZIL —
-        </div>
-        <h1 style={{ fontFamily:"'Rye',cursive", fontSize:"clamp(42px,8vw,80px)", color:"var(--cream)", lineHeight:1.05, textShadow:"3px 3px 0 rgba(0,0,0,.6)", marginBottom:8 }}>
-          RED BARN<br/><span style={{ color:"var(--amber)" }}>BARBER SHOP</span>
-        </h1>
-        <p style={{ color:"var(--smoke)", fontSize:16, maxWidth:400, margin:"16px auto 36px", fontFamily:"'Special Elite',cursive", lineHeight:1.6 }}>
-          Where every cut tells a story. Real craft, real tools, real men.
-        </p>
-        <div style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap" }}>
-          <Btn onClick={() => setView("agendar")} style={{ padding:"14px 36px", fontSize:15 }}>✂️ Book Your Seat</Btn>
-          <Btn variant="ghost" onClick={() => setView("meus horários")} style={{ padding:"14px 24px", fontSize:15 }}>My Appointments</Btn>
-        </div>
-      </div>
-
-      {/* WANTED-POSTER-style services */}
-      <div style={{ maxWidth:1100, margin:"0 auto", padding:"52px 24px" }}>
-
-        <div style={{ textAlign:"center", marginBottom:40 }}>
-          <SectionTitle>Our Services</SectionTitle>
-          <div className="star-divider" />
-        </div>
-
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:18, marginBottom:56 }}>
-          {SERVICES.map((s,i) => (
-            <div
-              key={s.id}
-              className="wanted-border fade-up"
-              onClick={() => setView("agendar")}
-              style={{
-                background:"linear-gradient(160deg, #3d2a18, #2b1a0e)",
-                padding:24, textAlign:"center", cursor:"pointer",
-                animationDelay:`${i*0.08}s`,
-                transition:"transform .2s, box-shadow .2s",
-                position:"relative",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform="translateY(-3px)"; e.currentTarget.style.boxShadow="0 8px 30px rgba(0,0,0,.7)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow=""; }}
-            >
-              {/* Nail corners */}
-              <div className="nail" style={{ position:"absolute", top:8, left:8 }} />
-              <div className="nail" style={{ position:"absolute", top:8, right:8 }} />
-              <div style={{ fontSize:38, marginBottom:10 }}>{s.icon}</div>
-              <div style={{ fontFamily:"'Rye',cursive", fontSize:16, color:"var(--cream)", marginBottom:4 }}>{s.name}</div>
-              <div style={{ color:"var(--smoke)", fontSize:12, marginBottom:10, fontFamily:"'Cabin Condensed',sans-serif", letterSpacing:1 }}>{s.duration} MIN</div>
-              <div style={{ fontFamily:"'Rye',cursive", fontSize:26, color:"var(--amber)", textShadow:"1px 1px 0 rgba(0,0,0,.5)" }}>R$ {s.price}</div>
-            </div>
-          ))}
-        </div>
-
-        <RopeDivider />
-
-{/* Public Gallery injected via App */}
-        {/* Info cards */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))", gap:16, marginTop:36 }}>
-          {[
-            { icon:"📍", title:"Find Us", text:"Rua das Acácias, 342\nCentro – São Paulo, SP\n\nGoogle Maps →" },
-            { icon:"🕐", title:"Hours",   text:"Mon–Fri: 9am–8pm\nSaturday: 8am–6pm\nSunday: Closed" },
-            { icon:"📞", title:"Holler",  text:"(11) 9 8765-4321\n24h WhatsApp bot\nwalk-ins welcome" },
-            { icon:"💰", title:"Pay",     text:"Pix · Credit Card\nDebit · Cash\nOnline payment link" },
-          ].map(item => (
-            <Card key={item.title} style={{ position:"relative" }}>
-              <div className="nail" style={{ position:"absolute", top:8, left:8 }} />
-              <div className="nail" style={{ position:"absolute", top:8, right:8 }} />
-              <div style={{ fontSize:28, marginBottom:8 }}>{item.icon}</div>
-              <div style={{ fontFamily:"'Rye',cursive", fontSize:15, color:"var(--amber)", marginBottom:8, letterSpacing:1 }}>{item.title}</div>
-              <div style={{ color:"var(--smoke)", fontSize:13, whiteSpace:"pre-line", lineHeight:1.8, fontFamily:"'Special Elite',cursive" }}>{item.text}</div>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── BOOKING ────────────────────────────────────────────────────────────────
-function Booking({ appointments, setAppointments }) {
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ client:"", phone:"", service:"", date:"", time:"", payment:"pix", music:"", notes:"" });
-  const [done, setDone] = useState(false);
-  const [bookingId, setBookingId] = useState(null);
-
-  const TIMES = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00"];
-  const occupied = appointments.filter(a => a.date===form.date && a.status!=="cancelado").map(a => a.time);
-  const set = (k,v) => setForm(f => ({ ...f, [k]:v }));
-
-  const confirm = () => {
-    const id = Date.now();
-    setAppointments(prev => [...prev, { id, ...form, status:"aguardando", price: SERVICES.find(s=>s.name===form.service)?.price||0 }]);
-    setBookingId(id);
-    setDone(true);
+  const handleCadastro = () => {
+    if (!form.nome || !form.email || !form.celular || !form.senha) { setErro("Preencha todos os campos."); return; }
+    if (form.senha !== form.confirma) { setErro("As senhas não coincidem."); return; }
+    onCadastrado({ ...form, id: Date.now(), role: "cliente" });
   };
 
-  if (done) return (
-    <div className="fade-up" style={{ maxWidth:500, margin:"60px auto", padding:"0 24px", textAlign:"center" }}>
-      <div style={{ fontSize:64, marginBottom:16 }}>🤠</div>
-      <h2 style={{ fontFamily:"'Rye',cursive", fontSize:34, color:"var(--amber)", letterSpacing:3, marginBottom:8 }}>You're Booked, Partner!</h2>
-      <Card style={{ marginBottom:20, textAlign:"left" }}>
-        <div className="nail" style={{ position:"absolute", top:8, left:8 }} />
-        <div className="nail" style={{ position:"absolute", top:8, right:8 }} />
-        <div style={{ fontFamily:"'Special Elite',cursive", lineHeight:2, color:"var(--cream)" }}>
-          <div>📋 <strong>{form.service}</strong></div>
-          <div>📅 {form.date} at {form.time}</div>
-          <div>🎵 {form.music}</div>
-          <div>💳 {form.payment}</div>
-          <div style={{ color:"var(--smoke)", fontSize:13, marginTop:8 }}>Booking ID: <strong style={{ color:"var(--amber)" }}>#{bookingId}</strong></div>
-        </div>
-      </Card>
-      <Card style={{ marginBottom:20 }}>
-        <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-          <div style={{ fontSize:28 }}>💬</div>
-          <div style={{ textAlign:"left" }}>
-            <div style={{ fontFamily:"'Rye',cursive", color:"var(--amber)", fontSize:14, marginBottom:2 }}>WhatsApp Confirmation</div>
-            <div style={{ color:"var(--smoke)", fontSize:12 }}>Bot sends reminder to {form.phone}</div>
-          </div>
-          <span className="badge badge-green" style={{ marginLeft:"auto" }}>BOT ON</span>
-        </div>
-      </Card>
-      <Btn onClick={() => { setDone(false); setStep(1); setForm({ client:"",phone:"",service:"",date:"",time:"",payment:"pix",music:"",notes:"" }); }}>
-        Book Another
-      </Btn>
-    </div>
-  );
-
-  const STEPS = ["Your Info","Service","Date & Time","Payment & Tunes"];
-
   return (
-    <div className="fade-up" style={{ maxWidth:660, margin:"40px auto", padding:"0 24px" }}>
-      <SectionTitle>Book Your Seat</SectionTitle>
-
-      {/* Step progress */}
-      <div style={{ display:"flex", marginBottom:28, gap:0 }}>
-        {STEPS.map((s,i) => (
-          <div key={i} style={{ flex:1, textAlign:"center" }}>
-            <div style={{
-              width:32, height:32, borderRadius:"50%",
-              background: step>i+1 ? "var(--amber)" : step===i+1 ? "var(--amber)" : "var(--iron)",
-              color: step>=i+1 ? "#1a0e06" : "var(--smoke)",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              margin:"0 auto 6px", fontSize:13, fontWeight:900,
-              border:`2px solid ${step>=i+1 ? "var(--amber)" : "var(--leather)"}`,
-              fontFamily:"'Cabin Condensed',sans-serif",
-            }}>{step>i+1?"✓":i+1}</div>
-            <div style={{ fontSize:10, color: step===i+1?"var(--amber)":"var(--smoke)", letterSpacing:.5, fontFamily:"'Cabin Condensed',sans-serif", fontWeight:700 }}>{s}</div>
+    <div className="auth-bg">
+      <div className="auth-card">
+        <div className="auth-logo">
+          <h1>RIFF</h1>
+          <span>✦ cadastro ✦</span>
+        </div>
+        <Alert type="error" msg={erro} />
+        {["nome", "email", "celular", "senha", "confirma"].map(f => (
+          <div className="field" key={f}>
+            <label>{f === "confirma" ? "Confirmar Senha" : f.charAt(0).toUpperCase() + f.slice(1)}</label>
+            <input
+              type={f.includes("senha") || f === "confirma" ? "password" : f === "email" ? "email" : "text"}
+              value={form[f]}
+              onChange={e => setForm({ ...form, [f]: e.target.value })}
+              placeholder={f === "celular" ? "(11) 99999-0000" : ""}
+            />
           </div>
         ))}
-      </div>
-
-      <div className="wanted-border" style={{ background:"linear-gradient(160deg,#3d2a18,#2b1a0e)", padding:28, position:"relative" }}>
-        <div className="nail" style={{ position:"absolute", top:8, left:8 }} />
-        <div className="nail" style={{ position:"absolute", top:8, right:8 }} />
-        <div className="nail" style={{ position:"absolute", bottom:8, left:8 }} />
-        <div className="nail" style={{ position:"absolute", bottom:8, right:8 }} />
-
-        {step===1 && (
-          <div>
-            <Field label="Full Name"><input value={form.client} onChange={e=>set("client",e.target.value)} placeholder="John Wayne" /></Field>
-            <Field label="WhatsApp (with area code)"><input value={form.phone} onChange={e=>set("phone",e.target.value)} placeholder="11987654321" maxLength={11} /></Field>
-          </div>
-        )}
-
-        {step===2 && (
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-            {SERVICES.map(s => (
-              <button key={s.id} onClick={() => set("service",s.name)} style={{
-                padding:14, borderRadius:4, cursor:"pointer", textAlign:"left",
-                border:`2px solid ${form.service===s.name?"var(--amber)":"var(--leather)"}`,
-                background: form.service===s.name ? "rgba(212,136,42,.15)" : "rgba(43,26,14,.8)",
-                transition:"all .2s",
-              }}>
-                <div style={{ fontSize:22, marginBottom:4 }}>{s.icon}</div>
-                <div style={{ fontFamily:"'Rye',cursive", fontSize:13, color:"var(--cream)", marginBottom:2 }}>{s.name}</div>
-                <div style={{ fontSize:11, color:"var(--smoke)", fontFamily:"'Cabin Condensed',sans-serif", letterSpacing:1 }}>{s.duration} MIN</div>
-                <div style={{ color:"var(--amber)", fontFamily:"'Rye',cursive", fontSize:17, marginTop:2 }}>R$ {s.price}</div>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {step===3 && (
-          <div>
-            <Field label="Pick a Date">
-              <input type="date" value={form.date} onChange={e=>set("date",e.target.value)} min={new Date().toISOString().split("T")[0]} />
-            </Field>
-            {form.date && (
-              <Field label="Available Times">
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
-                  {TIMES.map(t => {
-                    const occ = occupied.includes(t);
-                    return (
-                      <button key={t} disabled={occ} onClick={() => set("time",t)} style={{
-                        padding:"10px 2px", borderRadius:4, fontSize:13,
-                        fontFamily:"'Cabin Condensed',sans-serif", fontWeight:700,
-                        border:`2px solid ${form.time===t?"var(--amber)":occ?"var(--iron)":"var(--leather)"}`,
-                        background: form.time===t?"rgba(212,136,42,.2)":occ?"rgba(26,14,6,.6)":"rgba(43,26,14,.8)",
-                        color: form.time===t?"var(--amber)":occ?"var(--iron)":"var(--cream)",
-                        cursor: occ?"not-allowed":"pointer",
-                        textDecoration: occ?"line-through":"none",
-                      }}>{t}</button>
-                    );
-                  })}
-                </div>
-              </Field>
-            )}
-          </div>
-        )}
-
-        {step===4 && (
-          <div>
-            <Field label="Payment Method">
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-                {[["pix","🏦 Pix"],["cartão","💳 Card"],["dinheiro","💵 Cash"],["link","🔗 Pay Link"]].map(([val,label])=>(
-                  <button key={val} onClick={() => set("payment",val)} style={{
-                    padding:"12px 8px", borderRadius:4, fontSize:13,
-                    fontFamily:"'Cabin Condensed',sans-serif", fontWeight:700,
-                    border:`2px solid ${form.payment===val?"var(--amber)":"var(--leather)"}`,
-                    background: form.payment===val?"rgba(212,136,42,.15)":"rgba(43,26,14,.8)",
-                    color: form.payment===val?"var(--amber)":"var(--cream)",
-                  }}>{label}</button>
-                ))}
-              </div>
-            </Field>
-            <Field label="🎵 Pick Your Music">
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-                {MUSIC_GENRES.map(g=>(
-                  <button key={g.id} onClick={() => set("music",g.name)} style={{
-                    padding:"10px 8px", borderRadius:4, fontSize:12,
-                    fontFamily:"'Cabin Condensed',sans-serif", fontWeight:700,
-                    border:`2px solid ${form.music===g.name?"var(--amber)":"var(--leather)"}`,
-                    background: form.music===g.name?"rgba(212,136,42,.15)":"rgba(43,26,14,.8)",
-                    color: form.music===g.name?"var(--amber)":"var(--cream)",
-                  }}>{g.icon} {g.name}</button>
-                ))}
-              </div>
-            </Field>
-            <Field label="Special Requests">
-              <textarea value={form.notes} onChange={e=>set("notes",e.target.value)} rows={3} placeholder="Anything special, partner?" />
-            </Field>
-          </div>
-        )}
-
-        <div style={{ display:"flex", justifyContent:"space-between", marginTop:24, borderTop:"1px solid var(--leather)", paddingTop:18 }}>
-          {step>1 ? <Btn variant="ghost" onClick={()=>setStep(s=>s-1)}>← Back</Btn> : <div/>}
-          {step<4
-            ? <Btn onClick={()=>setStep(s=>s+1)} disabled={
-                (step===1&&(!form.client||!form.phone))||
-                (step===2&&!form.service)||
-                (step===3&&(!form.date||!form.time))
-              }>Next →</Btn>
-            : <Btn onClick={confirm} disabled={!form.payment||!form.music}>🤠 Confirm Booking</Btn>
-          }
+        <button className="btn btn-primary" onClick={handleCadastro}>Criar Conta</button>
+        <div style={{ textAlign: "center", marginTop: 16 }}>
+          <button className="link-btn" onClick={onVoltar}>← Voltar ao login</button>
         </div>
       </div>
     </div>
   );
 }
 
-// ── CLIENT APPOINTMENTS ────────────────────────────────────────────────────
-function ClientAppointments({ appointments, setAppointments }) {
-  const [phone, setPhone] = useState("");
-  const [searched, setSearched] = useState(false);
-  const myAppts = appointments.filter(a=>a.phone===phone);
-  const cancel = id => setAppointments(prev=>prev.map(a=>a.id===id?{...a,status:"cancelado"}:a));
+// ─── BARBEIRO ─────────────────────────────────────────────────────────────────
+function BarberDashboard({ user, onLogout }) {
+  const [tab, setTab] = useState("agenda");
+  const [cortes, setCortes] = useState(CORTES_INICIAIS);
+  const [musicas, setMusicas] = useState(MUSICAS_INICIAIS);
+  const [agendamentos, setAgendamentos] = useState(AGENDAMENTOS_INICIAIS);
+  const [infoBarbearia, setInfoBarbearia] = useState(INFO_BARBEARIA_INICIAL);
+  const [fotosSemana, setFotosSemana] = useState(FOTOS_SEMANA_INICIAIS);
+
+  const tabs = [
+    { id: "agenda", label: "Agenda" },
+    { id: "cortes", label: "Cortes" },
+    { id: "musica", label: "Música" },
+    { id: "fotos", label: "Cortes da Semana" },
+    { id: "cobrancas", label: "Cobranças" },
+    { id: "barbearia", label: "Barbearia" },
+  ];
 
   return (
-    <div className="fade-up" style={{ maxWidth:660, margin:"40px auto", padding:"0 24px" }}>
-      <SectionTitle>My Appointments</SectionTitle>
-      <div className="wanted-border" style={{ background:"linear-gradient(160deg,#3d2a18,#2b1a0e)", padding:24, marginBottom:20, position:"relative" }}>
-        <div className="nail" style={{ position:"absolute",top:8,left:8 }} />
-        <div className="nail" style={{ position:"absolute",top:8,right:8 }} />
-        <Field label="Enter your WhatsApp to find bookings">
-          <div style={{ display:"flex",gap:10 }}>
-            <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="11987654321" maxLength={11} />
-            <Btn onClick={()=>setSearched(true)} style={{ whiteSpace:"nowrap" }}>Search</Btn>
-          </div>
-        </Field>
-      </div>
-
-      {searched && myAppts.length===0 && (
-        <div style={{ textAlign:"center", color:"var(--smoke)", padding:40, fontFamily:"'Special Elite',cursive" }}>
-          No bookings found for this number, partner.
-        </div>
-      )}
-
-      {myAppts.map(a => (
-        <Card key={a.id} style={{ marginBottom:12, position:"relative" }}>
-          <div className="nail" style={{ position:"absolute",top:8,right:8 }} />
-          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10 }}>
-            <div>
-              <div style={{ fontFamily:"'Rye',cursive", fontSize:16, color:"var(--cream)", marginBottom:4 }}>{a.service}</div>
-              <div style={{ color:"var(--smoke)", fontSize:13 }}>📅 {a.date} at {a.time}</div>
-              <div style={{ color:"var(--smoke)", fontSize:13 }}>🎵 {a.music} · 💳 {a.payment}</div>
-            </div>
-            <div style={{ display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8 }}>
-              <span className={`badge badge-${a.status==="confirmado"?"green":a.status==="cancelado"?"red":"amber"}`}>{a.status}</span>
-              {a.status!=="cancelado"&&<Btn variant="danger" onClick={()=>cancel(a.id)} style={{ fontSize:11,padding:"5px 12px" }}>Cancel</Btn>}
-            </div>
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-// ── BARBER DASHBOARD ────────────────────────────────────────────────────────
-function BarberDashboard({ appointments }) {
-  const today = new Date().toISOString().split("T")[0];
-  const todayAppts = appointments.filter(a=>a.date===today);
-  const confirmed  = appointments.filter(a=>a.status==="confirmado").length;
-  const pending    = appointments.filter(a=>a.status==="aguardando").length;
-  const revenue    = appointments.filter(a=>a.status!=="cancelado").reduce((s,a)=>s+(a.price||0),0);
-
-  return (
-    <div className="fade-up" style={{ maxWidth:1100, margin:"0 auto", padding:"32px 24px" }}>
-      <SectionTitle>The Ranch – Dashboard</SectionTitle>
-
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:16, marginBottom:32 }}>
-        {[
-          { label:"Today's Riders",  value:todayAppts.length, sub:"appointments", color:"var(--amber)" },
-          { label:"Confirmed",       value:confirmed,          sub:"total",        color:"#7dbb6a" },
-          { label:"Waiting",         value:pending,            sub:"pending",      color:"#d4a44c" },
-          { label:"Revenue",         value:`R$${revenue}`,     sub:"estimated",    color:"var(--amber)" },
-        ].map(s=>(
-          <Card key={s.label} style={{ textAlign:"center", position:"relative" }}>
-            <div className="nail" style={{ position:"absolute",top:8,right:8 }} />
-            <div style={{ color:"var(--smoke)", fontSize:11, letterSpacing:2, textTransform:"uppercase", marginBottom:8, fontFamily:"'Cabin Condensed',sans-serif", fontWeight:700 }}>{s.label}</div>
-            <div style={{ fontFamily:"'Rye',cursive", fontSize:38, color:s.color, textShadow:"1px 1px 0 rgba(0,0,0,.4)" }}>{s.value}</div>
-            <div style={{ color:"var(--smoke)", fontSize:12 }}>{s.sub}</div>
-          </Card>
-        ))}
-      </div>
-
-      <h3 style={{ fontFamily:"'Rye',cursive", fontSize:20, color:"var(--amber)", letterSpacing:2, marginBottom:16 }}>Today's Schedule</h3>
-      {todayAppts.length===0
-        ? <Card><div style={{ textAlign:"center",color:"var(--smoke)",padding:20,fontFamily:"'Special Elite',cursive" }}>No riders booked for today.</div></Card>
-        : todayAppts.map(a=>(
-          <Card key={a.id} style={{ marginBottom:10 }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10 }}>
-              <div style={{ display:"flex",gap:16,alignItems:"center" }}>
-                <div style={{ fontFamily:"'Rye',cursive", fontSize:22, color:"var(--amber)", minWidth:52 }}>{a.time}</div>
-                <div>
-                  <div style={{ fontFamily:"'Cabin Condensed',sans-serif", fontWeight:700, fontSize:15 }}>{a.client}</div>
-                  <div style={{ color:"var(--smoke)", fontSize:13 }}>{a.service} · {a.music} · {a.payment}</div>
-                </div>
-              </div>
-              <span className={`badge badge-${a.status==="confirmado"?"green":a.status==="cancelado"?"red":"amber"}`}>{a.status}</span>
-            </div>
-          </Card>
-      ))}
-    </div>
-  );
-}
-
-// ── AGENDA ─────────────────────────────────────────────────────────────────
-function BarberAgenda({ appointments, setAppointments }) {
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
-  const [showAdd, setShowAdd]   = useState(false);
-  const [newA, setNewA]         = useState({ client:"",phone:"",service:"",date:"",time:"",payment:"pix",music:"",price:"" });
-
-  const filtered = appointments.filter(a=>!filterDate||a.date===filterDate).sort((a,b)=>a.time.localeCompare(b.time));
-  const setN = (k,v) => setNewA(f=>({...f,[k]:v}));
-  const updateStatus = (id,status) => setAppointments(prev=>prev.map(a=>a.id===id?{...a,status}:a));
-
-  const addAppt = () => {
-    setAppointments(prev=>[...prev,{ id:Date.now(),...newA,status:"confirmado",price:Number(newA.price) }]);
-    setShowAdd(false);
-    setNewA({ client:"",phone:"",service:"",date:"",time:"",payment:"pix",music:"",price:"" });
-  };
-
-  return (
-    <div className="fade-up" style={{ maxWidth:1100, margin:"0 auto", padding:"32px 24px" }}>
-      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,flexWrap:"wrap",gap:16 }}>
-        <SectionTitle>Booking Ledger</SectionTitle>
-        <div style={{ display:"flex",gap:10,alignItems:"center",flexWrap:"wrap" }}>
-          <input type="date" value={filterDate} onChange={e=>setFilterDate(e.target.value)} style={{ width:170 }} />
-          <Btn onClick={()=>setShowAdd(true)}>+ New Booking</Btn>
+    <div className="app">
+      <div className="topbar">
+        <div className="topbar-logo">RIFF ✦</div>
+        <div className="topbar-right">
+          <span className="topbar-user">✂ {user.nome}</span>
+          <button className="topbar-logout" onClick={onLogout}>Sair</button>
         </div>
       </div>
-
-      {filtered.length===0
-        ? <Card><div style={{ textAlign:"center",color:"var(--smoke)",padding:30,fontFamily:"'Special Elite',cursive" }}>No riders on this day.</div></Card>
-        : filtered.map(a=>(
-          <Card key={a.id} style={{ marginBottom:10 }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12 }}>
-              <div style={{ display:"flex",gap:14,alignItems:"center" }}>
-                <div style={{ fontFamily:"'Rye',cursive", fontSize:22, color:"var(--amber)", minWidth:56 }}>{a.time}</div>
-                <div>
-                  <div style={{ fontFamily:"'Cabin Condensed',sans-serif", fontWeight:700, fontSize:15 }}>{a.client}</div>
-                  <div style={{ color:"var(--smoke)", fontSize:13 }}>📱 {a.phone} · {a.service}</div>
-                  <div style={{ color:"var(--smoke)", fontSize:13 }}>🎵 {a.music} · 💳 {a.payment} · <span style={{ color:"var(--amber)" }}>R$ {a.price}</span></div>
-                </div>
-              </div>
-              <div style={{ display:"flex",gap:8,flexWrap:"wrap",alignItems:"center" }}>
-                <span className={`badge badge-${a.status==="confirmado"?"green":a.status==="cancelado"?"red":"amber"}`}>{a.status}</span>
-                {a.status!=="cancelado"&&<Btn variant="green" onClick={()=>updateStatus(a.id,"confirmado")} style={{ fontSize:11,padding:"5px 12px" }}>✓ Confirm</Btn>}
-                {a.status!=="cancelado"&&<Btn variant="danger" onClick={()=>updateStatus(a.id,"cancelado")} style={{ fontSize:11,padding:"5px 12px" }}>✗ Cancel</Btn>}
-              </div>
-            </div>
-          </Card>
-        ))
-      }
-
-      {showAdd && (
-        <Modal title="NEW BOOKING" onClose={()=>setShowAdd(false)}>
-          <Field label="Client Name"><input value={newA.client} onChange={e=>setN("client",e.target.value)} /></Field>
-          <Field label="WhatsApp"><input value={newA.phone} onChange={e=>setN("phone",e.target.value)} /></Field>
-          <Field label="Service">
-            <select value={newA.service} onChange={e=>setN("service",e.target.value)}>
-              <option value="">Select...</option>
-              {SERVICES.map(s=><option key={s.id} value={s.name}>{s.name} – R$ {s.price}</option>)}
-            </select>
-          </Field>
-          <Field label="Date"><input type="date" value={newA.date} onChange={e=>setN("date",e.target.value)} /></Field>
-          <Field label="Time"><input type="time" value={newA.time} onChange={e=>setN("time",e.target.value)} /></Field>
-          <Field label="Payment">
-            <select value={newA.payment} onChange={e=>setN("payment",e.target.value)}>
-              {["pix","cartão","dinheiro","link"].map(p=><option key={p} value={p}>{p}</option>)}
-            </select>
-          </Field>
-          <Field label="Music">
-            <select value={newA.music} onChange={e=>setN("music",e.target.value)}>
-              <option value="">Select...</option>
-              {MUSIC_GENRES.map(g=><option key={g.id} value={g.name}>{g.name}</option>)}
-            </select>
-          </Field>
-          <Field label="Price (R$)"><input type="number" value={newA.price} onChange={e=>setN("price",e.target.value)} /></Field>
-          <div style={{ display:"flex",gap:10,marginTop:4 }}>
-            <Btn onClick={addAppt} disabled={!newA.client||!newA.service||!newA.date||!newA.time}>Save</Btn>
-            <Btn variant="ghost" onClick={()=>setShowAdd(false)}>Cancel</Btn>
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-// ── CLIENTS ────────────────────────────────────────────────────────────────
-function Clients({ clients, setClients }) {
-  const [search, setSearch]     = useState("");
-  const [showAdd, setShowAdd]   = useState(false);
-  const [newC, setNewC]         = useState({ name:"",phone:"",favoriteService:"" });
-
-  const filtered = clients.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.phone.includes(search));
-
-  const sendWhatsApp = (phone,name) => {
-    const msg = encodeURIComponent(`Howdy ${name}! 🤠 Time for a fresh cut at Red Barn Barber Shop? Book your seat online or reply here! ✂️`);
-    window.open(`https://wa.me/55${phone}?text=${msg}`,"_blank");
-  };
-
-  const addClient = () => {
-    setClients(prev=>[...prev,{ id:Date.now(),...newC,visits:0,lastVisit:"-" }]);
-    setShowAdd(false);
-    setNewC({ name:"",phone:"",favoriteService:"" });
-  };
-
-  return (
-    <div className="fade-up" style={{ maxWidth:1100, margin:"0 auto", padding:"32px 24px" }}>
-      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,flexWrap:"wrap",gap:16 }}>
-        <SectionTitle>The Regulars</SectionTitle>
-        <div style={{ display:"flex",gap:10 }}>
-          <input placeholder="🔍 Search..." value={search} onChange={e=>setSearch(e.target.value)} style={{ width:200 }} />
-          <Btn onClick={()=>setShowAdd(true)}>+ Register</Btn>
-        </div>
-      </div>
-
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:16 }}>
-        {filtered.map(c=>(
-          <Card key={c.id} style={{ position:"relative" }}>
-            <div className="nail" style={{ position:"absolute",top:8,right:8 }} />
-            <div style={{ display:"flex",gap:12,alignItems:"flex-start",marginBottom:14 }}>
-              <div style={{ width:46,height:46,borderRadius:"50%",
-                background:"linear-gradient(135deg,var(--leather),var(--wood-dark))",
-                border:"2px solid var(--amber)",
-                display:"flex",alignItems:"center",justifyContent:"center",
-                fontFamily:"'Rye',cursive",fontSize:18,color:"var(--amber)",flexShrink:0 }}>
-                {c.name.charAt(0)}
-              </div>
-              <div>
-                <div style={{ fontFamily:"'Cabin Condensed',sans-serif",fontWeight:700,fontSize:15 }}>{c.name}</div>
-                <div style={{ color:"var(--smoke)",fontSize:13 }}>📱 {c.phone}</div>
-                <div style={{ color:"var(--smoke)",fontSize:12 }}>✂️ {c.favoriteService}</div>
-              </div>
-            </div>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,borderTop:"1px solid var(--leather)" }}>
-              <div style={{ textAlign:"center" }}>
-                <div style={{ fontSize:10,color:"var(--smoke)",fontFamily:"'Cabin Condensed',sans-serif",letterSpacing:1 }}>VISITS</div>
-                <div style={{ fontFamily:"'Rye',cursive",fontSize:24,color:"var(--amber)" }}>{c.visits}</div>
-              </div>
-              <div style={{ textAlign:"center" }}>
-                <div style={{ fontSize:10,color:"var(--smoke)",fontFamily:"'Cabin Condensed',sans-serif",letterSpacing:1 }}>LAST VISIT</div>
-                <div style={{ fontSize:12,color:"var(--cream)" }}>{c.lastVisit}</div>
-              </div>
-              <Btn variant="green" onClick={()=>sendWhatsApp(c.phone,c.name)} style={{ fontSize:11,padding:"6px 12px" }}>💬 WhatsApp</Btn>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {showAdd && (
-        <Modal title="REGISTER CLIENT" onClose={()=>setShowAdd(false)}>
-          <Field label="Name"><input value={newC.name} onChange={e=>setNewC(f=>({...f,name:e.target.value}))} /></Field>
-          <Field label="WhatsApp"><input value={newC.phone} onChange={e=>setNewC(f=>({...f,phone:e.target.value}))} /></Field>
-          <Field label="Favorite Service">
-            <select value={newC.favoriteService} onChange={e=>setNewC(f=>({...f,favoriteService:e.target.value}))}>
-              <option value="">Select...</option>
-              {SERVICES.map(s=><option key={s.id} value={s.name}>{s.name}</option>)}
-            </select>
-          </Field>
-          <div style={{ display:"flex",gap:10 }}>
-            <Btn onClick={addClient} disabled={!newC.name||!newC.phone}>Save</Btn>
-            <Btn variant="ghost" onClick={()=>setShowAdd(false)}>Cancel</Btn>
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-// ── SERVICES ───────────────────────────────────────────────────────────────
-function ServicesManager() {
-  const [services, setServices] = useState(SERVICES);
-  const [editing, setEditing]   = useState(null);
-  const [showAdd, setShowAdd]   = useState(false);
-  const [newSvc, setNewSvc]     = useState({ name:"",duration:"",price:"",icon:"✂️" });
-
-  const save = () => { setServices(prev=>prev.map(s=>s.id===editing.id?editing:s)); setEditing(null); };
-  const addSvc = () => {
-    setServices(prev=>[...prev,{ id:Date.now(),...newSvc,duration:Number(newSvc.duration),price:Number(newSvc.price) }]);
-    setShowAdd(false);
-    setNewSvc({ name:"",duration:"",price:"",icon:"✂️" });
-  };
-
-  return (
-    <div className="fade-up" style={{ maxWidth:900, margin:"0 auto", padding:"32px 24px" }}>
-      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,flexWrap:"wrap",gap:12 }}>
-        <SectionTitle>Services Menu</SectionTitle>
-        <Btn onClick={()=>setShowAdd(true)}>+ Add Service</Btn>
-      </div>
-
-      {services.map(s=>(
-        <Card key={s.id} style={{ marginBottom:10 }}>
-          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10 }}>
-            {editing?.id===s.id ? (
-              <div style={{ display:"flex",gap:10,flex:1,flexWrap:"wrap",alignItems:"center" }}>
-                <input value={editing.name} onChange={e=>setEditing(f=>({...f,name:e.target.value}))} style={{ flex:2,minWidth:130 }} />
-                <input type="number" value={editing.duration} onChange={e=>setEditing(f=>({...f,duration:Number(e.target.value)}))} placeholder="min" style={{ width:80 }} />
-                <input type="number" value={editing.price} onChange={e=>setEditing(f=>({...f,price:Number(e.target.value)}))} placeholder="R$" style={{ width:90 }} />
-                <Btn onClick={save}>Save</Btn>
-                <Btn variant="ghost" onClick={()=>setEditing(null)}>Cancel</Btn>
-              </div>
-            ):(
-              <>
-                <div style={{ display:"flex",gap:14,alignItems:"center" }}>
-                  <span style={{ fontSize:28 }}>{s.icon}</span>
-                  <div>
-                    <div style={{ fontFamily:"'Rye',cursive",fontSize:16,color:"var(--cream)" }}>{s.name}</div>
-                    <div style={{ color:"var(--smoke)",fontSize:12,fontFamily:"'Cabin Condensed',sans-serif",letterSpacing:1 }}>⏱ {s.duration} MIN</div>
-                  </div>
-                </div>
-                <div style={{ display:"flex",gap:12,alignItems:"center" }}>
-                  <div style={{ fontFamily:"'Rye',cursive",fontSize:24,color:"var(--amber)" }}>R$ {s.price}</div>
-                  <Btn variant="dark" onClick={()=>setEditing(s)} style={{ fontSize:11,padding:"5px 12px" }}>✏️ Edit</Btn>
-                  <Btn variant="danger" onClick={()=>setServices(prev=>prev.filter(x=>x.id!==s.id))} style={{ fontSize:11,padding:"5px 12px" }}>🗑</Btn>
-                </div>
-              </>
-            )}
-          </div>
-        </Card>
-      ))}
-
-      {showAdd && (
-        <Modal title="NEW SERVICE" onClose={()=>setShowAdd(false)}>
-          <Field label="Name"><input value={newSvc.name} onChange={e=>setNewSvc(f=>({...f,name:e.target.value}))} /></Field>
-          <Field label="Duration (min)"><input type="number" value={newSvc.duration} onChange={e=>setNewSvc(f=>({...f,duration:e.target.value}))} /></Field>
-          <Field label="Price (R$)"><input type="number" value={newSvc.price} onChange={e=>setNewSvc(f=>({...f,price:e.target.value}))} /></Field>
-          <Field label="Emoji Icon"><input value={newSvc.icon} onChange={e=>setNewSvc(f=>({...f,icon:e.target.value}))} placeholder="✂️" /></Field>
-          <div style={{ display:"flex",gap:10 }}>
-            <Btn onClick={addSvc} disabled={!newSvc.name||!newSvc.duration||!newSvc.price}>Save</Btn>
-            <Btn variant="ghost" onClick={()=>setShowAdd(false)}>Cancel</Btn>
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-// ── SETTINGS ───────────────────────────────────────────────────────────────
-function Settings() {
-  const [botOn, setBotOn]         = useState(false);
-  const [token, setToken]         = useState("");
-  const [payLink, setPayLink]     = useState("");
-  const [saved, setSaved]         = useState(false);
-  const [newEmail, setNewEmail]   = useState("");
-  const [newPass, setNewPass]     = useState("");
-  const [confirmPass, setConfirmPass] = useState("");
-  const [credMsg, setCredMsg]     = useState(null);
-
-  const save = () => { setSaved(true); setTimeout(()=>setSaved(false),2500); };
-
-  const saveCreds = () => {
-    if (newPass.length < 6) { setCredMsg({ ok:false, text:"Password must be at least 6 characters." }); return; }
-    if (newPass !== confirmPass) { setCredMsg({ ok:false, text:"Passwords don't match, partner!" }); return; }
-    try { localStorage.setItem("rb_barber", JSON.stringify({ email: newEmail.trim().toLowerCase(), password: newPass })); } catch {}
-    setCredMsg({ ok:true, text:"Credentials updated! Use them next time you log in." });
-    setNewEmail(""); setNewPass(""); setConfirmPass("");
-    setTimeout(()=>setCredMsg(null),4000);
-  };
-
-  return (
-    <div className="fade-up" style={{ maxWidth:720, margin:"0 auto", padding:"32px 24px" }}>
-      <SectionTitle>Homestead Settings</SectionTitle>
-
-      {/* WhatsApp */}
-      <Card style={{ marginBottom:16, position:"relative" }}>
-        <div className="nail" style={{ position:"absolute",top:8,left:8 }} />
-        <div className="nail" style={{ position:"absolute",top:8,right:8 }} />
-        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
-          <div>
-            <div style={{ fontFamily:"'Rye',cursive",fontSize:17,color:"#25d366",letterSpacing:1 }}>💬 WhatsApp Bot</div>
-            <div style={{ color:"var(--smoke)",fontSize:13,marginTop:2 }}>Auto-confirmation & reminder messages</div>
-          </div>
-          <button onClick={()=>setBotOn(!botOn)} style={{
-            width:54,height:28,borderRadius:14,border:"none",
-            background:botOn?"#25d366":"var(--iron)",position:"relative",transition:"background .3s",cursor:"pointer",
-          }}>
-            <span style={{
-              position:"absolute",top:3,left:botOn?28:3,
-              width:22,height:22,borderRadius:"50%",background:"#fff",transition:"left .3s",
-            }} />
+      <div className="nav-tabs">
+        {tabs.map(t => (
+          <button key={t.id} className={`nav-tab ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
+            {t.label}
           </button>
-        </div>
-        <Field label="API Token (Z-API / Evolution API / Twilio)">
-          <input type="password" value={token} onChange={e=>setToken(e.target.value)} placeholder="Paste your integration token here" />
-        </Field>
-        <div style={{ background:"rgba(37,211,102,.07)",border:"1px solid rgba(37,211,102,.2)",borderRadius:6,padding:14,marginTop:8 }}>
-          <div style={{ fontSize:13,color:"#25d366",fontFamily:"'Cabin Condensed',sans-serif",fontWeight:700,marginBottom:6,letterSpacing:1 }}>
-            📋 HOW TO CONNECT YOUR BOT
-          </div>
-          <div style={{ fontSize:12,color:"var(--smoke)",lineHeight:1.9,fontFamily:"'Special Elite',cursive" }}>
-            1. Create account at <strong style={{color:"var(--cream)"}}>Z-API.io</strong> or <strong style={{color:"var(--cream)"}}>Evolution API</strong><br/>
-            2. Scan the QR Code to link your WhatsApp number<br/>
-            3. Copy your integration token and paste above<br/>
-            4. Toggle the bot ON and save — done, partner! 🤠
-          </div>
-        </div>
-      </Card>
-
-      {/* Payments */}
-      <Card style={{ marginBottom:16,position:"relative" }}>
-        <div className="nail" style={{ position:"absolute",top:8,left:8 }} />
-        <div className="nail" style={{ position:"absolute",top:8,right:8 }} />
-        <div style={{ fontFamily:"'Rye',cursive",fontSize:17,color:"var(--amber)",letterSpacing:1,marginBottom:12 }}>💰 Payment Link</div>
-        <Field label="Mercado Pago / PagSeguro / Stripe URL">
-          <input value={payLink} onChange={e=>setPayLink(e.target.value)} placeholder="https://mpago.la/your-link" />
-        </Field>
-        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginTop:10 }}>
-          {[["🏦","Pix"],["💳","Credit"],["🪙","Debit"],["💵","Cash"]].map(([icon,label])=>(
-            <div key={label} style={{ background:"rgba(43,26,14,.8)",border:"1px solid var(--leather)",borderRadius:6,padding:"10px",textAlign:"center",fontSize:12,color:"var(--smoke)" }}>
-              <div style={{ fontSize:20,marginBottom:4 }}>{icon}</div>{label}
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* Credentials */}
-      <Card style={{ marginBottom:16,position:"relative" }}>
-        <div className="nail" style={{ position:"absolute",top:8,left:8 }} />
-        <div className="nail" style={{ position:"absolute",top:8,right:8 }} />
-        <div style={{ fontFamily:"'Rye',cursive",fontSize:17,color:"var(--amber)",letterSpacing:1,marginBottom:4 }}>🔐 Login Credentials</div>
-        <div style={{ color:"var(--smoke)",fontSize:12,marginBottom:14,fontFamily:"'Special Elite',cursive" }}>Change your barber login e-mail and password</div>
-        <Field label="New E-mail"><input type="email" value={newEmail} onChange={e=>setNewEmail(e.target.value)} placeholder="seu@email.com" /></Field>
-        <Field label="New Password"><input type="password" value={newPass} onChange={e=>setNewPass(e.target.value)} placeholder="Min. 6 characters" /></Field>
-        <Field label="Confirm Password"><input type="password" value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} placeholder="Repeat password" /></Field>
-        {credMsg && (
-          <div style={{
-            padding:"10px 14px", borderRadius:4, marginBottom:12, fontSize:13,
-            background: credMsg.ok ? "rgba(74,92,64,.3)" : "rgba(139,32,32,.2)",
-            border: `1px solid ${credMsg.ok ? "#3a5c30" : "var(--red-barn)"}`,
-            color: credMsg.ok ? "#7dbb6a" : "#c97a7a",
-            fontFamily:"'Special Elite',cursive",
-          }}>{credMsg.text}</div>
-        )}
-        <Btn variant="ghost" onClick={saveCreds} disabled={!newEmail||!newPass} style={{ fontSize:12 }}>
-          🔑 Update Credentials
-        </Btn>
-      </Card>
-
-      {/* Shop Info */}
-      <Card style={{ marginBottom:24,position:"relative" }}>
-        <div className="nail" style={{ position:"absolute",top:8,left:8 }} />
-        <div className="nail" style={{ position:"absolute",top:8,right:8 }} />
-        <div style={{ fontFamily:"'Rye',cursive",fontSize:17,color:"var(--amber)",letterSpacing:1,marginBottom:12 }}>📍 Shop Info</div>
-        <Field label="Shop Name"><input defaultValue="Red Barn Barber Shop" /></Field>
-        <Field label="Address"><input defaultValue="Rua das Acácias, 342 – Centro, São Paulo – SP" /></Field>
-        <Field label="WhatsApp"><input defaultValue="11987654321" /></Field>
-        <Field label="Business Hours"><input defaultValue="Mon–Fri 9am–8pm · Sat 8am–6pm" /></Field>
-      </Card>
-
-      <Btn onClick={save} style={{ width:"100%",padding:"14px",fontSize:15,justifyContent:"center" }}>
-        {saved ? "🤠 Saved, Partner!" : "💾 Save Settings"}
-      </Btn>
+        ))}
+      </div>
+      <div className="content">
+        {tab === "agenda" && <BarberAgenda agendamentos={agendamentos} setAgendamentos={setAgendamentos} />}
+        {tab === "cortes" && <BarberCortes cortes={cortes} setCortes={setCortes} />}
+        {tab === "musica" && <BarberMusica musicas={musicas} setMusicas={setMusicas} />}
+        {tab === "fotos" && <BarberFotos fotosSemana={fotosSemana} setFotosSemana={setFotosSemana} />}
+        {tab === "cobrancas" && <BarberCobracas agendamentos={agendamentos} />}
+        {tab === "barbearia" && <BarberInfo info={infoBarbearia} setInfo={setInfoBarbearia} />}
+      </div>
     </div>
   );
 }
 
+function BarberAgenda({ agendamentos, setAgendamentos }) {
+  const hoje = agendamentos.filter(a => a.data === "2026-03-12");
+  const pendentes = agendamentos.filter(a => a.status === "pendente");
 
-// ── WEEKLY GALLERY ─────────────────────────────────────────────────────────
-const GALLERY_STORAGE_KEY = "rb_weekly_photos";
-
-function useGallery() {
-  const [photos, setPhotos] = useState(() => {
-    try {
-      const raw = localStorage.getItem(GALLERY_STORAGE_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      const now = Date.now();
-      const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
-      return parsed.filter(p => now - p.uploadedAt < SEVEN_DAYS);
-    } catch { return []; }
-  });
-
-  const savePhotos = (list) => {
-    setPhotos(list);
-    try { localStorage.setItem(GALLERY_STORAGE_KEY, JSON.stringify(list)); } catch {}
+  const updateStatus = (id, status) => {
+    setAgendamentos(prev => prev.map(a => a.id === id ? { ...a, status } : a));
   };
-
-  // Purge photos older than 7 days on mount
-  useEffect(() => {
-    const now = Date.now();
-    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
-    const fresh = photos.filter(p => now - p.uploadedAt < SEVEN_DAYS);
-    if (fresh.length !== photos.length) savePhotos(fresh);
-  }, []);
-
-  const addPhoto = (dataUrl, caption) => {
-    const newPhoto = { id: Date.now(), dataUrl, caption, uploadedAt: Date.now() };
-    savePhotos([...photos, newPhoto]);
-  };
-
-  const removePhoto = (id) => savePhotos(photos.filter(p => p.id !== id));
-
-  return { photos, addPhoto, removePhoto };
-}
-
-function daysLeft(uploadedAt) {
-  const diff = 7 * 24 * 60 * 60 * 1000 - (Date.now() - uploadedAt);
-  return Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
-}
-
-// Public gallery (client-facing section in home)
-function PublicGallery({ photos }) {
-  const [lightbox, setLightbox] = useState(null);
-  if (photos.length === 0) return null;
 
   return (
-    <div style={{ maxWidth:1100, margin:"0 auto", padding:"0 24px 52px" }}>
-      <div style={{ textAlign:"center", marginBottom:32 }}>
-        <SectionTitle>This Week's Work</SectionTitle>
-        <div className="star-divider" />
+    <>
+      <div className="stat-grid">
+        <div className="stat-card"><div className="stat-num">{agendamentos.length}</div><div className="stat-label">Total</div></div>
+        <div className="stat-card"><div className="stat-num">{hoje.length}</div><div className="stat-label">Hoje</div></div>
+        <div className="stat-card"><div className="stat-num">{pendentes.length}</div><div className="stat-label">Pendentes</div></div>
       </div>
-      <div style={{ columns:"3 220px", gap:14 }}>
-        {photos.map((p, i) => (
-          <div
-            key={p.id}
-            onClick={() => setLightbox(p)}
-            className="fade-up"
-            style={{
-              breakInside:"avoid", marginBottom:14, cursor:"zoom-in",
-              border:"3px solid var(--leather)",
-              boxShadow:"0 4px 16px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.04)",
-              borderRadius:4, overflow:"hidden", position:"relative",
-              animationDelay:`${i*0.07}s`,
-              transition:"transform .2s, box-shadow .2s",
-            }}
-            onMouseEnter={e=>{ e.currentTarget.style.transform="scale(1.02)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(0,0,0,.7)"; }}
-            onMouseLeave={e=>{ e.currentTarget.style.transform="scale(1)"; e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.5)"; }}
-          >
-            <img src={p.dataUrl} alt={p.caption} style={{ width:"100%", display:"block", objectFit:"cover" }} />
-            {p.caption && (
-              <div style={{
-                position:"absolute", bottom:0, left:0, right:0,
-                background:"linear-gradient(transparent, rgba(10,6,2,.9))",
-                padding:"20px 10px 8px",
-                fontFamily:"'Special Elite',cursive", fontSize:12, color:"var(--cream)",
-                letterSpacing:.5,
-              }}>{p.caption}</div>
-            )}
-            {/* Nail decoration */}
-            <div className="nail" style={{ position:"absolute", top:6, left:6 }} />
-            <div className="nail" style={{ position:"absolute", top:6, right:6 }} />
+      <div className="card">
+        <div className="card-title">Agendamentos</div>
+        {agendamentos.map(a => (
+          <div className="agend-item" key={a.id}>
+            <div className="agend-info">
+              <div className="agend-nome">{a.clienteNome}</div>
+              <div className="agend-detalhe">{a.corteNome} • R$ {a.valor} • {a.data} às {a.hora}</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span className={`badge badge-${a.status}`}>{a.status}</span>
+              {a.status === "pendente" && (
+                <>
+                  <button className="btn btn-gold btn-sm" onClick={() => updateStatus(a.id, "confirmado")}>Confirmar</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => updateStatus(a.id, "cancelado")}>Cancelar</button>
+                </>
+              )}
+              {a.status === "confirmado" && (
+                <button className="btn btn-outline btn-sm" onClick={() => updateStatus(a.id, "concluido")}>Concluir</button>
+              )}
+            </div>
           </div>
         ))}
       </div>
-
-      {lightbox && (
-        <div
-          onClick={() => setLightbox(null)}
-          style={{
-            position:"fixed", inset:0, background:"rgba(0,0,0,.92)", zIndex:2000,
-            display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:20,
-          }}
-        >
-          <img src={lightbox.dataUrl} alt={lightbox.caption} style={{ maxWidth:"90vw", maxHeight:"80vh", objectFit:"contain", borderRadius:4, border:"3px solid var(--leather)" }} />
-          {lightbox.caption && <div style={{ color:"var(--cream)", marginTop:14, fontFamily:"'Special Elite',cursive", fontSize:15 }}>{lightbox.caption}</div>}
-          <div style={{ color:"var(--smoke)", marginTop:8, fontSize:12 }}>Click anywhere to close</div>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
-// Barber gallery manager
-function GalleryManager({ photos, addPhoto, removePhoto }) {
-  const [dragging, setDragging] = useState(false);
-  const [caption, setCaption]   = useState("");
-  const [preview, setPreview]   = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const fileRef = useState(null);
+function BarberCortes({ cortes, setCortes }) {
+  const [modal, setModal] = useState(false);
+  const [editando, setEditando] = useState(null);
+  const [form, setForm] = useState({ nome: "", valor: "", tempo: "", foto: null });
 
-  const readFile = (file) => {
-    if (!file || !file.type.startsWith("image/")) return;
+  const abrirNovo = () => { setEditando(null); setForm({ nome: "", valor: "", tempo: "", foto: null }); setModal(true); };
+  const abrirEdit = (c) => { setEditando(c.id); setForm({ nome: c.nome, valor: c.valor, tempo: c.tempo, foto: c.foto }); setModal(true); };
+
+  const salvar = () => {
+    if (!form.nome || !form.valor || !form.tempo) return;
+    if (editando) {
+      setCortes(prev => prev.map(c => c.id === editando ? { ...c, ...form, valor: +form.valor, tempo: +form.tempo } : c));
+    } else {
+      setCortes(prev => [...prev, { id: Date.now(), ...form, valor: +form.valor, tempo: +form.tempo }]);
+    }
+    setModal(false);
+  };
+
+  const remover = (id) => setCortes(prev => prev.filter(c => c.id !== id));
+
+  const handleFoto = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
     const reader = new FileReader();
-    reader.onload = e => setPreview({ dataUrl: e.target.result, name: file.name });
+    reader.onload = ev => setForm(f => ({ ...f, foto: ev.target.result }));
     reader.readAsDataURL(file);
   };
 
-  const handleDrop = (e) => {
-    e.preventDefault(); setDragging(false);
-    const file = e.dataTransfer.files[0];
-    readFile(file);
-  };
-
-  const handleFile = (e) => readFile(e.target.files[0]);
-
-  const confirmUpload = () => {
-    if (!preview) return;
-    setUploading(true);
-    setTimeout(() => {
-      addPhoto(preview.dataUrl, caption.trim());
-      setPreview(null); setCaption(""); setUploading(false);
-    }, 400);
-  };
-
   return (
-    <div className="fade-up" style={{ maxWidth:1100, margin:"0 auto", padding:"32px 24px" }}>
-      <SectionTitle>Weekly Photo Board</SectionTitle>
-      <div style={{ color:"var(--smoke)", fontSize:13, marginBottom:24, fontFamily:"'Special Elite',cursive" }}>
-        Photos are automatically removed after <strong style={{color:"var(--amber)"}}>7 days</strong>. They appear publicly on the client home page.
-      </div>
-
-      {/* Upload zone */}
-      <div
-        onDragOver={e=>{ e.preventDefault(); setDragging(true); }}
-        onDragLeave={()=>setDragging(false)}
-        onDrop={handleDrop}
-        style={{
-          border:`2px dashed ${dragging?"var(--amber)":"var(--leather)"}`,
-          borderRadius:8, padding:"36px 24px", textAlign:"center", marginBottom:24,
-          background: dragging ? "rgba(212,136,42,.07)" : "rgba(43,26,14,.5)",
-          transition:"all .2s", cursor:"pointer",
-        }}
-        onClick={() => document.getElementById("gallery-file-input").click()}
-      >
-        <div style={{ fontSize:40, marginBottom:10 }}>📸</div>
-        <div style={{ fontFamily:"'Rye',cursive", color:"var(--tan)", fontSize:16, marginBottom:4 }}>
-          {dragging ? "Drop it like it's hot!" : "Drag & drop a photo here"}
+    <>
+      <div className="card">
+        <div className="card-title">
+          Cortes & Serviços
+          <button className="btn btn-gold btn-sm" onClick={abrirNovo}>+ Novo Corte</button>
         </div>
-        <div style={{ color:"var(--smoke)", fontSize:13 }}>or click to browse your files</div>
-        <input id="gallery-file-input" type="file" accept="image/*" onChange={handleFile} style={{ display:"none" }} />
-      </div>
-
-      {/* Preview before saving */}
-      {preview && (
-        <div className="wanted-border" style={{ background:"linear-gradient(160deg,#3d2a18,#2b1a0e)", padding:20, marginBottom:24, position:"relative" }}>
-          <div className="nail" style={{ position:"absolute",top:8,left:8 }} />
-          <div className="nail" style={{ position:"absolute",top:8,right:8 }} />
-          <div style={{ fontFamily:"'Rye',cursive", color:"var(--amber)", fontSize:16, marginBottom:12 }}>📌 Preview</div>
-          <div style={{ display:"flex", gap:16, flexWrap:"wrap", alignItems:"flex-start" }}>
-            <img src={preview.dataUrl} alt="preview" style={{ width:180, height:180, objectFit:"cover", borderRadius:4, border:"2px solid var(--leather)", flexShrink:0 }} />
-            <div style={{ flex:1, minWidth:200 }}>
-              <Field label="Caption (optional)">
-                <input value={caption} onChange={e=>setCaption(e.target.value)} placeholder="e.g. Classic taper fade..." maxLength={80} />
-              </Field>
-              <div style={{ display:"flex", gap:10, marginTop:8 }}>
-                <Btn onClick={confirmUpload} disabled={uploading}>
-                  {uploading ? "Pinning..." : "📌 Pin to Board"}
-                </Btn>
-                <Btn variant="danger" onClick={()=>{ setPreview(null); setCaption(""); }}>Discard</Btn>
+        <div className="grid-3">
+          {cortes.map(c => (
+            <div className="corte-card" key={c.id}>
+              {c.foto ? <img src={c.foto} alt={c.nome} /> : (
+                <div style={{ width: "100%", height: 100, background: "var(--warm)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10, fontSize: 28 }}>✂</div>
+              )}
+              <div className="corte-card-nome">{c.nome}</div>
+              <div className="corte-card-info">
+                <span>⏱ {c.tempo}min</span>
+                <span className="corte-valor">R$ {c.valor}</span>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button className="btn btn-outline btn-sm" style={{ flex: 1 }} onClick={() => abrirEdit(c)}>Editar</button>
+                <button className="btn btn-danger btn-sm" onClick={() => remover(c.id)}>✕</button>
               </div>
             </div>
-          </div>
+          ))}
         </div>
+      </div>
+      {modal && (
+        <Modal title={editando ? "Editar Corte" : "Novo Corte"} onClose={() => setModal(false)}>
+          {["nome"].map(f => (
+            <div className="field" key={f}>
+              <label>{f.charAt(0).toUpperCase() + f.slice(1)} do Corte</label>
+              <input value={form[f]} onChange={e => setForm({ ...form, [f]: e.target.value })} />
+            </div>
+          ))}
+          <div className="grid-2">
+            <div className="field">
+              <label>Valor (R$)</label>
+              <input type="number" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} />
+            </div>
+            <div className="field">
+              <label>Tempo (min)</label>
+              <input type="number" value={form.tempo} onChange={e => setForm({ ...form, tempo: e.target.value })} />
+            </div>
+          </div>
+          <div className="field">
+            <label>Foto do Corte (pequena)</label>
+            <input type="file" accept="image/*" onChange={handleFoto} />
+            {form.foto && <img src={form.foto} alt="preview" style={{ width: 80, height: 80, objectFit: "cover", marginTop: 8, border: "1px solid var(--warm)" }} />}
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+            <button className="btn btn-primary" style={{ flex: 1 }} onClick={salvar}>Salvar</button>
+            <button className="btn btn-outline" onClick={() => setModal(false)}>Cancelar</button>
+          </div>
+        </Modal>
       )}
+    </>
+  );
+}
 
-      {/* Current photos grid */}
-      {photos.length === 0 ? (
-        <Card>
-          <div style={{ textAlign:"center", color:"var(--smoke)", padding:30, fontFamily:"'Special Elite',cursive" }}>
-            No photos pinned yet. Upload your first cut above! 📸
-          </div>
-        </Card>
-      ) : (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:16 }}>
-          {photos.map(p => {
-            const remaining = daysLeft(p.uploadedAt);
-            const urgent = remaining <= 1;
-            return (
-              <div key={p.id} style={{ position:"relative", border:`2px solid ${urgent?"var(--red-barn)":"var(--leather)"}`, borderRadius:6, overflow:"hidden", background:"var(--wood-dark)" }}>
-                <div className="nail" style={{ position:"absolute",top:6,left:6,zIndex:2 }} />
-                <div className="nail" style={{ position:"absolute",top:6,right:6,zIndex:2 }} />
-                <img src={p.dataUrl} alt={p.caption} style={{ width:"100%", height:180, objectFit:"cover", display:"block" }} />
-                <div style={{ padding:"10px 12px" }}>
-                  {p.caption && <div style={{ fontFamily:"'Special Elite',cursive", fontSize:13, color:"var(--cream)", marginBottom:6 }}>{p.caption}</div>}
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <span className={`badge ${urgent?"badge-red":"badge-amber"}`}>
-                      {remaining === 0 ? "Expiring today" : `${remaining}d left`}
-                    </span>
-                    <button onClick={()=>removePhoto(p.id)} style={{
-                      background:"none", border:"1px solid var(--red-barn)", borderRadius:4,
-                      color:"#c97a7a", fontSize:11, padding:"3px 8px", fontFamily:"'Cabin Condensed',sans-serif",
-                    }}>🗑 Remove</button>
-                  </div>
-                  <div style={{ marginTop:6, height:3, borderRadius:2, background:"var(--iron)", overflow:"hidden" }}>
-                    <div style={{ height:"100%", width:`${(remaining/7)*100}%`, background: urgent ? "var(--red-barn)" : "var(--amber)", transition:"width .3s" }} />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+function BarberMusica({ musicas, setMusicas }) {
+  const [novaMusica, setNovaMusica] = useState("");
+
+  const adicionar = () => {
+    if (!novaMusica.trim()) return;
+    setMusicas(prev => [...prev, { id: Date.now(), nome: novaMusica.trim() }]);
+    setNovaMusica("");
+  };
+
+  const remover = (id) => setMusicas(prev => prev.filter(m => m.id !== id));
+
+  return (
+    <div className="card">
+      <div className="card-title">Estilos Musicais</div>
+      <p className="text-muted" style={{ marginBottom: 16 }}>O cliente poderá escolher o estilo que deseja ouvir durante o corte.</p>
+      {musicas.map(m => (
+        <div className="musica-item" key={m.id}>
+          <span className="musica-nome">🎵 {m.nome}</span>
+          <button className="btn btn-danger btn-sm" onClick={() => remover(m.id)}>Remover</button>
         </div>
-      )}
+      ))}
+      <div className="section-sep" />
+      <div style={{ display: "flex", gap: 10 }}>
+        <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+          <input value={novaMusica} onChange={e => setNovaMusica(e.target.value)} placeholder="Ex: Jazz, Funk, Gospel..." onKeyDown={e => e.key === "Enter" && adicionar()} />
+        </div>
+        <button className="btn btn-gold" onClick={adicionar}>+ Adicionar</button>
+      </div>
     </div>
   );
 }
 
-// ── APP ────────────────────────────────────────────────────────────────────
-export default function App() {
-  const [view, setView]               = useState("home");
-  const [isBarber, setIsBarber]       = useState(false);
-  const [showLogin, setShowLogin]     = useState(false);
-  const [appointments, setAppointments] = useState(INITIAL_APPOINTMENTS);
-  const [clients, setClients]         = useState(INITIAL_CLIENTS);
-  const { photos, addPhoto, removePhoto } = useGallery();
+function BarberFotos({ fotosSemana, setFotosSemana }) {
+  const [modal, setModal] = useState(false);
+  const [legenda, setLegenda] = useState("");
+  const [fotoData, setFotoData] = useState(null);
 
-  const handleLogin = () => {
-    setIsBarber(true);
-    setShowLogin(false);
-    setView("dashboard");
+  const handleFoto = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setFotoData(ev.target.result);
+    reader.readAsDataURL(file);
   };
 
-  const handleLogout = () => {
-    setIsBarber(false);
-    setView("home");
+  const postar = () => {
+    setFotosSemana(prev => [...prev, {
+      id: Date.now(),
+      legenda,
+      fotoData,
+      data: new Date().toISOString(),
+      likes: 0,
+    }]);
+    setModal(false);
+    setLegenda("");
+    setFotoData(null);
   };
 
-  if (showLogin && !isBarber) {
-    return <BarberLogin onLogin={handleLogin} />;
-  }
+  const remover = (id) => setFotosSemana(prev => prev.filter(f => f.id !== id));
+
+  const diasRestantes = (dataStr) => {
+    const diff = 7 - Math.floor((Date.now() - new Date(dataStr)) / 86400000);
+    return Math.max(0, diff);
+  };
 
   return (
-    <div style={{ minHeight:"100vh" }}>
-      <Header
-        view={view}
-        setView={setView}
-        isBarber={isBarber}
-        onLogout={handleLogout}
-        onGoLogin={() => setShowLogin(true)}
-      />
-      <main>
-        {!isBarber && view==="home"           && <ClientHome setView={setView} photos={photos} />}
-        {!isBarber && view==="agendar"        && <Booking appointments={appointments} setAppointments={setAppointments} />}
-        {!isBarber && view==="meus horários"  && <ClientAppointments appointments={appointments} setAppointments={setAppointments} />}
-        {isBarber  && view==="dashboard"      && <BarberDashboard appointments={appointments} />}
-        {isBarber  && view==="agenda"         && <BarberAgenda appointments={appointments} setAppointments={setAppointments} />}
-        {isBarber  && view==="clientes"       && <Clients clients={clients} setClients={setClients} />}
-        {isBarber  && view==="serviços"       && <ServicesManager />}
-        {isBarber  && view==="galeria"        && <GalleryManager photos={photos} addPhoto={addPhoto} removePhoto={removePhoto} />}
-        {isBarber  && view==="configurações"  && <Settings />}
-      </main>
-
-      {/* Footer */}
-      <footer style={{ borderTop:"3px solid var(--leather)", marginTop:40, padding:"24px", textAlign:"center" }}>
-        <div style={{ fontFamily:"'Rye',cursive", color:"var(--amber)", fontSize:14, letterSpacing:3, marginBottom:6 }}>RED BARN BARBER SHOP</div>
-        <div style={{ color:"var(--smoke)", fontSize:12, fontFamily:"'Special Elite',cursive" }}>
-          Rua das Acácias, 342 · Centro · São Paulo, SP · (11) 9 8765-4321
+    <>
+      <div className="card">
+        <div className="card-title">
+          Cortes da Semana
+          <button className="btn btn-gold btn-sm" onClick={() => setModal(true)}>+ Postar Foto</button>
         </div>
-        <div style={{ height:3, background:"repeating-linear-gradient(90deg, var(--amber) 0, var(--amber) 12px, var(--red-barn) 12px, var(--red-barn) 24px)", marginTop:16 }} />
-      </footer>
+        <p className="text-muted" style={{ marginBottom: 16 }}>As fotos são removidas automaticamente após 7 dias.</p>
+        <div className="grid-3">
+          {fotosSemana.map(f => (
+            <div className="foto-card" key={f.id}>
+              {f.fotoData ? <img src={f.fotoData} alt={f.legenda} style={{ width: "100%", height: 160, objectFit: "cover" }} />
+                : <div className="foto-placeholder">✂</div>}
+              <div className="foto-info">
+                <div className="foto-legenda">{f.legenda}</div>
+                <div className="foto-meta">❤ {f.likes} curtidas • {diasRestantes(f.data)} dias restantes</div>
+                <button className="btn btn-danger btn-sm" onClick={() => remover(f.id)}>Remover</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {modal && (
+        <Modal title="Nova Foto" onClose={() => setModal(false)}>
+          <div className="field">
+            <label>Foto</label>
+            <input type="file" accept="image/*" onChange={handleFoto} />
+            {fotoData && <img src={fotoData} alt="preview" style={{ width: "100%", height: 140, objectFit: "cover", marginTop: 8 }} />}
+          </div>
+          <div className="field">
+            <label>Legenda</label>
+            <input value={legenda} onChange={e => setLegenda(e.target.value)} placeholder="Ex: Degradê impecável!" />
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button className="btn btn-primary" style={{ flex: 1 }} onClick={postar}>Postar</button>
+            <button className="btn btn-outline" onClick={() => setModal(false)}>Cancelar</button>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
+
+function BarberCobracas({ agendamentos }) {
+  const concluidos = agendamentos.filter(a => a.status === "concluido" || a.status === "confirmado");
+  const total = concluidos.reduce((s, a) => s + a.valor, 0);
+  const pendentes = agendamentos.filter(a => a.status === "pendente").reduce((s, a) => s + a.valor, 0);
+
+  return (
+    <>
+      <div className="stat-grid">
+        <div className="stat-card"><div className="stat-num">R$ {total}</div><div className="stat-label">Recebido</div></div>
+        <div className="stat-card"><div className="stat-num">R$ {pendentes}</div><div className="stat-label">A Receber</div></div>
+        <div className="stat-card"><div className="stat-num">{concluidos.length}</div><div className="stat-label">Atendimentos</div></div>
+      </div>
+      <div className="card">
+        <div className="card-title">Histórico de Cobranças</div>
+        {agendamentos.map(a => (
+          <div className="cobranca-item" key={a.id}>
+            <div>
+              <div style={{ fontFamily: "Playfair Display, serif", fontSize: 16, fontWeight: 700 }}>{a.clienteNome}</div>
+              <div className="text-muted">{a.corteNome} • {a.data} às {a.hora}</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span className="cobranca-valor">R$ {a.valor}</span>
+              <span className={`badge badge-${a.status}`}>{a.status}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function BarberInfo({ info, setInfo }) {
+  const [form, setForm] = useState({ ...info });
+  const [salvo, setSalvo] = useState(false);
+
+  const salvar = () => {
+    setInfo({ ...form });
+    setSalvo(true);
+    setTimeout(() => setSalvo(false), 2000);
+  };
+
+  return (
+    <div className="card">
+      <div className="card-title">Dados da Barbearia</div>
+      {salvo && <Alert type="success" msg="Dados salvos com sucesso!" />}
+      <div className="grid-2">
+        {["nome", "endereco", "cidade", "telefone", "horario"].map(f => (
+          <div className="field" key={f}>
+            <label>{f.charAt(0).toUpperCase() + f.slice(1)}</label>
+            <input value={form[f]} onChange={e => setForm({ ...form, [f]: e.target.value })} />
+          </div>
+        ))}
+      </div>
+      <div className="field">
+        <label>Descrição</label>
+        <textarea value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} />
+      </div>
+      <div className="section-sep" />
+      <div className="field">
+        <label>Localização no Mapa (endereço)</label>
+        <div className="mapa-placeholder">
+          <span style={{ fontSize: 32 }}>📍</span>
+          <span>{form.endereco}, {form.cidade}</span>
+          <span className="text-muted" style={{ fontSize: 13 }}>Integração com Google Maps</span>
+        </div>
+      </div>
+      <button className="btn btn-primary" style={{ maxWidth: 200 }} onClick={salvar}>Salvar Alterações</button>
     </div>
+  );
+}
+
+// ─── CLIENTE ──────────────────────────────────────────────────────────────────
+function ClienteDashboard({ user, onLogout }) {
+  const [tab, setTab] = useState("agendar");
+  const [cortes] = useState(CORTES_INICIAIS);
+  const [musicas] = useState(MUSICAS_INICIAIS);
+  const [fotosSemana, setFotosSemana] = useState(FOTOS_SEMANA_INICIAIS);
+  const [agendamentos, setAgendamentos] = useState(AGENDAMENTOS_INICIAIS.filter(a => a.clienteId === user.id));
+  const [infoBarbearia] = useState(INFO_BARBEARIA_INICIAL);
+
+  const tabs = [
+    { id: "agendar", label: "Agendar" },
+    { id: "meus", label: "Meus Agendamentos" },
+    { id: "musica", label: "Música" },
+    { id: "fotos", label: "Cortes da Semana" },
+    { id: "barbearia", label: "A Barbearia" },
+  ];
+
+  return (
+    <div className="app">
+      <div className="topbar">
+        <div className="topbar-logo">RIFF ✦</div>
+        <div className="topbar-right">
+          <span className="topbar-user">👤 {user.nome}</span>
+          <button className="topbar-logout" onClick={onLogout}>Sair</button>
+        </div>
+      </div>
+      <div className="nav-tabs">
+        {tabs.map(t => (
+          <button key={t.id} className={`nav-tab ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="content">
+        {tab === "agendar" && <ClienteAgendar cortes={cortes} user={user} agendamentos={agendamentos} setAgendamentos={setAgendamentos} />}
+        {tab === "meus" && <ClienteMeusAgendamentos agendamentos={agendamentos} setAgendamentos={setAgendamentos} />}
+        {tab === "musica" && <ClienteMusica musicas={musicas} />}
+        {tab === "fotos" && <ClienteFotos fotosSemana={fotosSemana} setFotosSemana={setFotosSemana} />}
+        {tab === "barbearia" && <ClienteBarbearia info={infoBarbearia} />}
+      </div>
+    </div>
+  );
+}
+
+const HORARIOS = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"];
+
+function ClienteAgendar({ cortes, user, agendamentos, setAgendamentos }) {
+  const [corteId, setCorteId] = useState(null);
+  const [data, setData] = useState("");
+  const [hora, setHora] = useState("");
+  const [sucesso, setSucesso] = useState("");
+  const [erro, setErro] = useState("");
+
+  const corte = cortes.find(c => c.id === corteId);
+
+  const agendar = () => {
+    if (!corteId || !data || !hora) { setErro("Selecione o corte, data e horário."); return; }
+    setErro("");
+    const novo = {
+      id: Date.now(),
+      clienteId: user.id,
+      clienteNome: user.nome,
+      corteId,
+      corteNome: corte.nome,
+      valor: corte.valor,
+      data,
+      hora,
+      status: "pendente",
+    };
+    setAgendamentos(prev => [...prev, novo]);
+    setSucesso(`✓ Agendamento de ${corte.nome} em ${data} às ${hora} realizado! Você receberá uma confirmação no celular.`);
+    setCorteId(null); setData(""); setHora("");
+    setTimeout(() => setSucesso(""), 5000);
+  };
+
+  return (
+    <div className="card">
+      <div className="card-title">Agendar Corte</div>
+      <Alert type="success" msg={sucesso} />
+      <Alert type="error" msg={erro} />
+
+      <div style={{ marginBottom: 20 }}>
+        <label style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "var(--brown)", display: "block", marginBottom: 10 }}>Escolha o Corte</label>
+        {cortes.map(c => (
+          <div key={c.id} className={`cliente-select-corte ${corteId === c.id ? "selected" : ""}`} onClick={() => setCorteId(c.id)}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontFamily: "Playfair Display, serif", fontSize: 16, fontWeight: 700 }}>{c.nome}</div>
+                <div className="text-muted">⏱ {c.tempo} minutos</div>
+              </div>
+              <div className="corte-valor">R$ {c.valor}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid-2">
+        <div className="field">
+          <label>Data</label>
+          <input type="date" value={data} onChange={e => setData(e.target.value)} min="2026-03-10" />
+        </div>
+      </div>
+
+      {data && (
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "var(--brown)", display: "block", marginBottom: 8 }}>Horário</label>
+          <div className="horario-agend">
+            {HORARIOS.map(h => (
+              <div key={h} className={`horario-slot ${hora === h ? "selected" : ""}`} onClick={() => setHora(h)}>{h}</div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button className="btn btn-primary" style={{ maxWidth: 220 }} onClick={agendar}>Confirmar Agendamento</button>
+    </div>
+  );
+}
+
+function ClienteMeusAgendamentos({ agendamentos, setAgendamentos }) {
+  const cancelar = (id) => setAgendamentos(prev => prev.map(a => a.id === id ? { ...a, status: "cancelado" } : a));
+
+  return (
+    <div className="card">
+      <div className="card-title">Meus Agendamentos</div>
+      {agendamentos.length === 0 && <p className="text-muted">Nenhum agendamento ainda.</p>}
+      {agendamentos.map(a => (
+        <div className="agend-item" key={a.id}>
+          <div className="agend-info">
+            <div className="agend-nome">{a.corteNome}</div>
+            <div className="agend-detalhe">R$ {a.valor} • {a.data} às {a.hora}</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className={`badge badge-${a.status}`}>{a.status}</span>
+            {a.status === "pendente" && (
+              <button className="btn btn-danger btn-sm" onClick={() => cancelar(a.id)}>Cancelar</button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ClienteMusica({ musicas }) {
+  const [escolhida, setEscolhida] = useState(null);
+  const [enviado, setEnviado] = useState(false);
+
+  const enviar = () => {
+    if (!escolhida) return;
+    setEnviado(true);
+    setTimeout(() => setEnviado(false), 3000);
+  };
+
+  return (
+    <div className="card">
+      <div className="card-title">🎵 Escolha a Música</div>
+      <p className="text-muted" style={{ marginBottom: 20 }}>Diga ao barbeiro o que você quer ouvir durante o corte!</p>
+      {enviado && <Alert type="success" msg={`✓ Pedido de "${escolhida}" enviado ao barbeiro!`} />}
+      <div className="flex-gap" style={{ marginBottom: 20 }}>
+        {musicas.map(m => (
+          <div key={m.id} className={`musica-select-item ${escolhida === m.nome ? "selected" : ""}`} onClick={() => setEscolhida(m.nome)}>
+            {m.nome}
+          </div>
+        ))}
+      </div>
+      <button className="btn btn-gold" style={{ maxWidth: 200 }} onClick={enviar} disabled={!escolhida}>
+        Pedir para o Barbeiro
+      </button>
+    </div>
+  );
+}
+
+function ClienteFotos({ fotosSemana, setFotosSemana }) {
+  const [likedIds, setLikedIds] = useState([]);
+
+  const toggleLike = (id) => {
+    if (likedIds.includes(id)) {
+      setLikedIds(prev => prev.filter(l => l !== id));
+      setFotosSemana(prev => prev.map(f => f.id === id ? { ...f, likes: f.likes - 1 } : f));
+    } else {
+      setLikedIds(prev => [...prev, id]);
+      setFotosSemana(prev => prev.map(f => f.id === id ? { ...f, likes: f.likes + 1 } : f));
+    }
+  };
+
+  const diasRestantes = (dataStr) => {
+    const diff = 7 - Math.floor((Date.now() - new Date(dataStr)) / 86400000);
+    return Math.max(0, diff);
+  };
+
+  return (
+    <div className="card">
+      <div className="card-title">✂ Cortes da Semana</div>
+      <div className="grid-3">
+        {fotosSemana.map(f => (
+          <div className="foto-card" key={f.id}>
+            {f.fotoData ? <img src={f.fotoData} alt={f.legenda} style={{ width: "100%", height: 160, objectFit: "cover" }} />
+              : <div className="foto-placeholder">✂</div>}
+            <div className="foto-info">
+              <div className="foto-legenda">{f.legenda}</div>
+              <div className="foto-meta">{diasRestantes(f.data)} dias restantes</div>
+              <button className={`like-btn ${likedIds.includes(f.id) ? "liked" : ""}`} onClick={() => toggleLike(f.id)}>
+                ❤ {f.likes} curtidas
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ClienteBarbearia({ info }) {
+  return (
+    <div className="card">
+      <div className="card-title">{info.nome}</div>
+      <p style={{ fontSize: 18, fontStyle: "italic", color: "var(--brown)", marginBottom: 20 }}>"{info.descricao}"</p>
+      <div className="grid-2">
+        <div>
+          <div className="field" style={{ marginBottom: 14 }}>
+            <label>Endereço</label>
+            <div style={{ padding: "10px 0", fontSize: 16 }}>📍 {info.endereco}<br />{info.cidade}</div>
+          </div>
+          <div className="field" style={{ marginBottom: 14 }}>
+            <label>Telefone</label>
+            <div style={{ padding: "10px 0", fontSize: 16 }}>📞 {info.telefone}</div>
+          </div>
+          <div className="field">
+            <label>Horário de Funcionamento</label>
+            <div style={{ padding: "10px 0", fontSize: 16 }}>🕐 {info.horario}</div>
+          </div>
+        </div>
+        <div>
+          <label style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "var(--brown)", display: "block", marginBottom: 8 }}>Localização</label>
+          <div className="mapa-placeholder">
+            <span style={{ fontSize: 40 }}>📍</span>
+            <strong>{info.nome}</strong>
+            <span>{info.endereco}</span>
+            <span>{info.cidade}</span>
+            <span className="text-muted" style={{ fontSize: 12 }}>Integração com Google Maps disponível</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── App Principal ─────────────────────────────────────────────────────────────
+export default function App() {
+  const [tela, setTela] = useState("login"); // login | cadastro | app
+  const [usuario, setUsuario] = useState(null);
+
+  const handleLogin = (user) => { setUsuario(user); setTela("app"); };
+  const handleCadastrado = (user) => { setUsuario(user); setTela("app"); };
+  const handleLogout = () => { setUsuario(null); setTela("login"); };
+
+  return (
+    <>
+      <StyleSheet />
+      {tela === "login" && <Login onLogin={handleLogin} onCadastro={() => setTela("cadastro")} />}
+      {tela === "cadastro" && <Cadastro onVoltar={() => setTela("login")} onCadastrado={handleCadastrado} />}
+      {tela === "app" && usuario && (
+        usuario.role === "barbeiro"
+          ? <BarberDashboard user={usuario} onLogout={handleLogout} />
+          : <ClienteDashboard user={usuario} onLogout={handleLogout} />
+      )}
+    </>
   );
 }
